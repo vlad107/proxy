@@ -8,5 +8,6 @@ proxy_server::proxy_server(std::unique_ptr<epoll_handler> efd)
 void proxy_server::start(int port)
 {
     sfd = std::make_unique<server_socket>(port);
-    efd->add_event(sfd->get_socket(), EPOLLIN);
+    efd->add_event(sfd->get_socket(), EPOLLIN, [](int x) {x += 1;});
+    efd->loop();
 }
