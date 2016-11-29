@@ -2,8 +2,9 @@
 #define HINTS_H
 #include <iostream>
 #include <typeinfo>
+#include <sstream>
 
-int string_to_int(std::string s) 
+int str_to_int(std::string s)
 {
 	std::stringstream convert;
 	int result;

@@ -31,3 +31,21 @@ int server_socket::get_socket()
 {
     return sfd;
 }
+
+int server_socket::accept(int fd)
+{
+    sockaddr_in addr;
+    socklen_t addr_len = sizeof(addr);
+    int cfd;
+    while (true)
+    {
+        cfd = ::accept(sfd, (sockaddr*)&addr, &addr_len);
+        if ((cfd < 0) && (errno == EINTR)) continue;
+        break;
+    }
+    if (cfd < 0)
+    {
+        throw std::runtime_error("error in accept(server_socket)");
+    }
+    return cfd;
+}

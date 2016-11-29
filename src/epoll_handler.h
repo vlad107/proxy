@@ -6,6 +6,18 @@
 #include <stdexcept>
 #include <functional>
 
+class my_epoll_data
+{
+    int fd;
+    std::function<void(int)> func;
+public:
+    my_epoll_data(int fd, std::function<void(int)> func) : fd(fd), func(func) {}
+    void f()
+    {
+        func(fd);
+    }
+};
+
 class epoll_handler
 {
     int efd;
@@ -13,7 +25,7 @@ class epoll_handler
 public:
     epoll_handler();
 
-    void add_event(int sfd, int mask, void (*handler)(int));
+    void add_event(int sfd, int mask, std::function<void(int)> handler);
     void loop();
 };
 

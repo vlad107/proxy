@@ -13,6 +13,7 @@ public:
     server_socket(int port);
     ~server_socket();
     int get_socket();
+    int accept(int fd);
 };
 
 #endif // SERVER_SOCKET_H
