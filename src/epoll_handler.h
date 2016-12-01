@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <functional>
+#include <assert.h>
 
 class my_epoll_data
 {
@@ -26,6 +27,7 @@ public:
     epoll_handler();
 
     void add_event(int sfd, int mask, std::function<void(int)> handler);
+    void rem_event(int sfd, int mask) {assert(false);}
     void loop();
 };
 

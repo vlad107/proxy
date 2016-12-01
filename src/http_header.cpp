@@ -12,6 +12,10 @@ bool http_header::empty()
 
 std::string http_header::get_item(std::string name)
 {
+    if (items.count(name) == 0)
+    {
+        throw std::runtime_error("item " + name + " not found in http-request");
+    }
     return items[name];
 }
 
@@ -20,7 +24,7 @@ void http_header::parse(std::string header)
     std::cerr << "parsing of:\n" << header << "\n---" << std::endl;
     std::stringstream in(header);
     std::string line;
-    getline(in, line); // first line with version of HTTP
+    getline(in, line); // type of request/response first line with version of HTTP
     while (getline(in, line))
     {
         int sep = line.find(": ");
@@ -40,4 +44,22 @@ void http_header::parse(std::string header)
 void http_header::clear()
 {
     items.clear();
+}
+
+int http_header::get_content_len()
+{
+    int len;
+    try
+    {
+        len = stoi(get_item("Content-Length"));
+    } catch (...)
+    {
+        len = 0;
+    }
+    return len;
+}
+
+std::string http_header::get_host()
+{
+    return get_item("Host");
 }

@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
         std::cerr << USAGE << std::endl;
         return 1;
     }
-    proxy_server server(std::make_unique<epoll_handler>());
+    proxy_server server(std::make_shared<epoll_handler>());
     server.start(port);
     return 0;
 }
