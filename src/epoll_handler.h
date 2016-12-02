@@ -31,7 +31,7 @@ public:
     epoll_handler();
 
     void add_event(int sfd, int mask, std::function<void(int)> handler);
-    void rem_event(int sfd, int mask) {assert(false);}
+    void rem_event(int sfd, int mask);
     void loop();
 };
 

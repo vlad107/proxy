@@ -7,6 +7,11 @@ server_socket::server_socket(int port)
     {
         throw std::runtime_error("error in creating socket");
     }
+    int ok = 1;
+    if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &ok, sizeof(ok)) < 0)
+    {
+        throw std::runtime_error("error in setsockopt():\n" + std::string(strerror(errno)));
+    }
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(struct sockaddr_in));
     addr.sin_family = AF_INET;

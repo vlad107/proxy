@@ -35,6 +35,9 @@ std::string tcp_helper::read_all(int fd)
 
 int tcp_helper::open_connection(std::string host)
 {
+    std::cerr << "--------" << host.size() << "-------" << std::endl;
+    std::cerr << host << std::endl;
+    std::cerr << "----------------" << std::endl;
     int port;
     size_t i = host.find(":");
     if (i != std::string::npos)
@@ -61,4 +64,13 @@ int tcp_helper::open_connection(std::string host)
         throw std::runtime_error("error in connect():\n" + std::string(strerror(errno)));
     }
     return sockfd;
+}
+
+std::string tcp_helper::normalize(std::string s)
+{
+    while ((!s.empty()) && ((s[s.size() - 1] == '\r') || (s[s.size() - 1] == '\n')))
+    {
+        s = s.substr(0, s.size() - 1);
+    }
+    return s;
 }

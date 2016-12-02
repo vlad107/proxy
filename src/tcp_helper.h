@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <netdb.h>
+#include <iostream>
 
 class tcp_helper
 {
@@ -17,6 +18,7 @@ public:
     static void make_nonblocking(int fd);
     static std::string read_all(int fd);
     static int open_connection(std::string host);
+    static std::string normalize(std::string host);
     tcp_helper();
 };
 

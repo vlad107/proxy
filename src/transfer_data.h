@@ -31,7 +31,8 @@ public:
     int size();
     int get_header_end();
     bool empty();
-    void write_all(int fd);
+    void debug_write();
+    bool write_all(int fd);
     std::string get_header();
     std::string extract_front_http(int body_len);
 };
@@ -42,18 +43,24 @@ class host_data
     std::unique_ptr<http_buffer> buffer_out;
     std::unique_ptr<http_header> response_header;
     int fd;
-    std::function<void(std::string)> response_handler;
+    int fd_in;
 public:
     host_data(std::string host);
     void add_request(std::string req);
-    void write_all(int fd);
+    bool write_all(int fd);
     void add_response(std::string resp);
     std::string extract_response();
     bool empty_in();
-    int get_server_socket();
+    int get_out_socket();
+    int get_in_socket();
     bool available_response();
     void add_writer(std::shared_ptr<epoll_handler> efd);
     void set_response_handler(std::function<void(std::string)>);
+
+    void debug_response()
+    {
+        buffer_out->debug_write();
+    }
 };
 
 class transfer_data
@@ -69,6 +76,7 @@ private:
     void initialize();
     void manage_client_requests();
     int fd;
+    int out_fd;
     std::shared_ptr<epoll_handler> efd;
     std::unique_ptr<http_buffer> client_buffer;
     std::unique_ptr<http_header> client_header;
