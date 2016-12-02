@@ -38,7 +38,7 @@ void epoll_handler::loop()
                 throw std::runtime_error("some error occured in epoll");
             }
             auto data = reinterpret_cast<my_epoll_data*>(evs[i].data.ptr);
-            std::cerr << "descriptor " << evs[i].data.fd << " occured in epoll" << std::endl;
+            std::cerr << "descriptor " << data->get_descriptor() << " occured in epoll" << std::endl;
             data->f();
         }
     }

@@ -17,6 +17,10 @@ public:
     {
         func(fd);
     }
+    int get_descriptor()
+    {
+        return fd;
+    }
 };
 
 class epoll_handler
