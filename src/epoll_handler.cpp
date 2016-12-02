@@ -25,7 +25,7 @@ void epoll_handler::loop()
     struct epoll_event evs[MAX_EVENTS];
     while (true)
     {
-//        std::cerr << "===== new iteration =====" << std::endl;
+        std::cerr << "============================ new iteration ============================" << std::endl;
         int ev_sz;
         if ((ev_sz = epoll_wait(efd, evs, MAX_EVENTS, -1)) < 0)
         {
@@ -41,6 +41,7 @@ void epoll_handler::loop()
             auto data = reinterpret_cast<my_epoll_data*>(evs[i].data.ptr);
 //            std::cerr << "descriptor " << data->get_descriptor() << " occured in epoll" << std::endl;
             data->f();
+            std::cerr << "done" << std::endl;
         }
     }
 }

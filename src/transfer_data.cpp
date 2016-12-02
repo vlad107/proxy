@@ -248,7 +248,7 @@ void transfer_data::manage_client_requests()
                 std::cerr << host << std::endl;
                 std::cerr << "--the end of the host--" << std::endl;
                 std::cerr << "add event onRead for host" << std::endl;
-                efd->add_event(hosts[host]->get_in_socket(), EPOLLIN, [&, host](int ffd)
+                efd->add_event(hosts[host]->get_in_socket(), EPOLLIN, [&, host, this](int ffd)
                 {
                     std::cerr << "response from descriptor " << ffd << " is available" << std::endl;
                     std::string response = tcp_helper::read_all(ffd);
@@ -260,7 +260,7 @@ void transfer_data::manage_client_requests()
                     std::cerr << "--the end of the host--" << std::endl;
                     hosts[host]->add_response(response);
                     std::cerr << result_q.front() << std::endl;
-                    while (hosts[result_q.front()]->available_response())
+                    while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
                     {
                         std::cerr << "some response is available" << std::endl;
                         std::string http_response = hosts[result_q.front()]->extract_response();
@@ -277,7 +277,9 @@ void transfer_data::manage_client_requests()
                                 }
                             });
                         }
+                        std::cerr << "adding chunk..." << std::endl;
                         response_buffer->add_chunk(response);
+                        std::cerr << "added" << std::endl;
                     }
                 });
             }
