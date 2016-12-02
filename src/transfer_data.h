@@ -4,8 +4,10 @@
 #include "epoll_handler.h"
 #include "tcp_helper.h"
 
+#include <unordered_map>
 #include <deque>
 #include <iostream>
+#include <queue>
 #include <functional>
 #include <memory>
 
@@ -38,14 +40,18 @@ class host_data
 {
     std::unique_ptr<http_buffer> buffer_in;
     std::unique_ptr<http_buffer> buffer_out;
+    std::unique_ptr<http_header> response_header;
     int fd;
     std::function<void(std::string)> response_handler;
 public:
     host_data(std::string host);
     void add_request(std::string req);
+    void write_all(int fd);
     void add_response(std::string resp);
-    bool empty_request();
+    std::string extract_response();
+    bool empty_in();
     int get_server_socket();
+    bool available_response();
     void add_writer(std::shared_ptr<epoll_handler> efd);
     void set_response_handler(std::function<void(std::string)>);
 };
@@ -53,16 +59,13 @@ public:
 class transfer_data
 {
 public:
-    // CLIENT resuest to the PROXY
-    // PROXY requset to the SERVER
-    // SERVER response to the PROXY
-    // PROXY response to the CLIENT
     transfer_data(int fd, std::shared_ptr<epoll_handler> efd);
     void read_all();
     void check_for_requests();
     int get_descriptor();
     void make_nonblocking();
 private:
+    std::queue<std::string> result_q;
     void initialize();
     void manage_client_requests();
     int fd;
@@ -70,7 +73,7 @@ private:
     std::unique_ptr<http_buffer> client_buffer;
     std::unique_ptr<http_header> client_header;
     std::unique_ptr<http_buffer> response_buffer;
-    std::map<std::string, std::unique_ptr<host_data>> hosts;
+    std::unordered_map<std::string, std::unique_ptr<host_data>> hosts;
 };
 
 #endif // CLIENT_DATA_H

@@ -104,7 +104,7 @@ host_data::host_data(std::string host)
     buffer_out = std::make_unique<http_buffer>();
 }
 
-bool host_data::empty_request()
+bool host_data::empty_in()
 {
     return buffer_in->empty();
 }
@@ -114,9 +114,40 @@ void host_data::add_request(std::string req)
     buffer_in->add_chunk(req);
 }
 
+void host_data::write_all(int fd)
+{
+    buffer_in->write_all(fd);
+}
+
 int host_data::get_server_socket()
 {
     return fd;
+}
+
+bool host_data::available_response()
+{
+    if (buffer_out->was_header_end())
+    {
+        if (response_header->empty())
+        {
+            response_header->parse(buffer_out->get_header());
+        }
+        int available_len = buffer_out->size() - buffer_out->get_header_end();
+        int body_len = response_header->get_content_len();
+        if (available_len >= body_len)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string host_data::extract_response()
+{
+    int body_len = response_header->get_content_len();
+    std::string result = buffer_out->extract_front_http(body_len);
+    response_header->clear();
+    return result;
 }
 
 void host_data::add_response(std::string resp)
@@ -176,25 +207,36 @@ void transfer_data::manage_client_requests()
         {
             std::string req = client_buffer->extract_front_http(body_len);
             std::string host = client_header->get_host(); // TODO: or IP?
+            result_q.push(host);
             if (hosts.count(host) == 0)
             {
                 hosts[host] = std::make_unique<host_data>(host);
-                hosts[host]->set_response_handler([&](std::string response)
+                efd->add_event(hosts[host]->get_server_socket(), EPOLLIN, [&](int ffd)
                 {
-                    if (response_buffer->empty())
+                    std::string response = tcp_helper::read_all(ffd);
+                    hosts[host]->add_response(response);
+                    while (hosts[result_q.front()]->available_response())
                     {
-                        efd->add_event(fd, EPOLLOUT, [&](int ffd)
+                        std::string http_response = hosts[result_q.front()]->extract_response();
+                        result_q.pop();
+                        if (response_buffer->empty())
                         {
-                            response_buffer->write_all(ffd);
-                        });
+                            efd->add_event(fd, EPOLLOUT, [&](int out_fd)
+                            {
+                                response_buffer->write_all(out_fd);
+                            });
+                        }
+                        response_buffer->add_chunk(response);
                     }
-                    response_buffer->add_chunk(response);
                 });
             }
             auto &cur_host = hosts[host];
-            if (cur_host->empty_request())
+            if (cur_host->empty_in())
             {
-                cur_host->add_writer(efd);
+                efd->add_event(cur_host->get_server_socket(), EPOLLOUT, [&](int out_fd)
+                {
+                    cur_host->write_all(out_fd);
+                });
             }
             cur_host->add_request(req);
             efd->add_event(cur_host->get_server_socket(), EPOLLIN, [&](int fd)
