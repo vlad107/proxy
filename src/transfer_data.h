@@ -46,6 +46,7 @@ class host_data
     int fd_in;
 public:
     host_data(std::string host);
+    ~host_data();
     void add_request(std::string req);
     bool write_all(int fd);
     void add_response(std::string resp);
@@ -67,6 +68,7 @@ class transfer_data
 {
 public:
     transfer_data(int fd, std::shared_ptr<epoll_handler> efd);
+    ~transfer_data();
     void read_all();
     void check_for_requests();
     int get_descriptor();

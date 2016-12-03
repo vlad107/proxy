@@ -128,6 +128,12 @@ host_data::host_data(std::string host)
     response_header = std::make_unique<http_header>();
 }
 
+host_data::~host_data()
+{
+    close(fd);
+    close(fd_in);
+}
+
 bool host_data::empty_in()
 {
     return buffer_in->empty();
@@ -209,10 +215,16 @@ transfer_data::transfer_data(int fd, std::shared_ptr<epoll_handler> efd)
     initialize();
 }
 
+transfer_data::~transfer_data()
+{
+    close(fd);
+    close(out_fd);
+}
+
 void transfer_data::initialize()
 {
     tcp_helper::make_nonblocking(fd);
-    efd->add_event(fd, EPOLLIN, [&](int fd)
+    efd->add_event(fd, EPOLLIN | EPOLLRDHUP, [&](int fd)
     {
         std::cerr << "new data on " << fd << " descriptor" << std::endl;
         client_buffer->add_chunk(tcp_helper::read_all(fd));
@@ -237,62 +249,40 @@ void transfer_data::manage_client_requests()
             std::string req = client_buffer->extract_front_http(body_len);
             std::string host = client_header->get_host(); // TODO: or IP?
             host = tcp_helper::normalize(host);
-            std::cerr << "==host===" << std::endl;
-            std::cerr << host << std::endl;
-            std::cerr << "==\\host===" << std::endl;
             result_q.push(host);
             if (hosts.count(host) == 0)
             {
                 hosts[host] = std::make_unique<host_data>(host);
-                std::cerr << "--it is host!!!--" << std::endl;
-                std::cerr << host << std::endl;
-                std::cerr << "--the end of the host--" << std::endl;
-                std::cerr << "add event onRead for host" << std::endl;
-                efd->add_event(hosts[host]->get_in_socket(), EPOLLIN, [&, host, this](int ffd)
+                efd->add_event(hosts[host]->get_in_socket(), EPOLLIN | EPOLLRDHUP, [&, host, this](int ffd)
                 {
-                    std::cerr << "response from descriptor " << ffd << " is available" << std::endl;
                     std::string response = tcp_helper::read_all(ffd);
-                    std::cerr << "====" << std::endl;
-                    std::cerr << response << std::endl;
-                    std::cerr << "====" << std::endl;
-                    std::cerr << "--it is host!!!--" << std::endl;
-                    std::cerr << host << std::endl;
-                    std::cerr << "--the end of the host--" << std::endl;
                     hosts[host]->add_response(response);
-                    std::cerr << result_q.front() << std::endl;
                     while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
                     {
-                        std::cerr << "some response is available" << std::endl;
                         std::string http_response = hosts[result_q.front()]->extract_response();
                         result_q.pop();
                         if (response_buffer->empty())
                         {
-                            std::cerr << "add event onRead for client" << std::endl;
                             efd->add_event(out_fd, EPOLLOUT, [&](int out_fd)
                             {
-                                std::cerr << "client can read" << std::endl;
+                                std::cerr << "client socket is read to write" << std::endl;
                                 if (response_buffer->write_all(out_fd))
                                 {
                                     efd->rem_event(out_fd, EPOLLOUT);
                                 }
                             });
                         }
-                        std::cerr << "adding chunk..." << std::endl;
-                        response_buffer->add_chunk(response);
-                        std::cerr << "added" << std::endl;
+                        response_buffer->add_chunk(http_response);
                     }
                 });
             }
             auto &cur_host = hosts[host];
             if (cur_host->empty_in())
             {
-                std::cerr << "add onWrite for host" << std::endl;
                 efd->add_event(cur_host->get_out_socket(), EPOLLOUT, [&](int out_fd)
                 {
-                    std::cerr << "original server can read" << std::endl;
                     if (cur_host->write_all(out_fd))
                     {
-                        std::cerr << "removing..." << std::endl;
                         efd->rem_event(cur_host->get_out_socket(), EPOLLOUT);
                     }
 

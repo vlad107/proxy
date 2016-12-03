@@ -6,6 +6,9 @@
 #include <stdexcept>
 #include <functional>
 #include <assert.h>
+#include <unordered_map>
+#include <unistd.h>
+#include <memory>
 
 class my_epoll_data
 {
@@ -13,7 +16,7 @@ class my_epoll_data
     std::function<void(int)> func;
 public:
     my_epoll_data(int fd, std::function<void(int)> func) : fd(fd), func(func) {}
-    void f()
+    void f(int fd)
     {
         func(fd);
     }
@@ -26,9 +29,11 @@ public:
 class epoll_handler
 {
     int efd;
+    std::unordered_map<int, epoll_event> events;
     static const int MAX_EVENTS = 1024;
 public:
     epoll_handler();
+    ~epoll_handler();
 
     void add_event(int sfd, int mask, std::function<void(int)> handler);
     void rem_event(int sfd, int mask);

@@ -11,6 +11,15 @@ void proxy_server::start(int port)
     std::cerr << "Server has been started" << std::endl;
     auto accept_handler = [this](int fd)
     {
+        if (fd < 0)
+        {
+            fd = -fd - 1;
+            if (clients.count(fd) != 0)
+            {
+                std::cerr << "removing " << fd << " descriptor" << std::endl;
+                clients.erase(fd);
+            }
+        }
         std::cerr << "accept " << fd << " descriptor" << std::endl;
         fd = sfd->accept(fd);
         clients[fd] = std::make_unique<transfer_data>(fd, efd);

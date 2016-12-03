@@ -5,14 +5,24 @@ epoll_handler::epoll_handler()
     efd = epoll_create1(0);
 }
 
+epoll_handler::~epoll_handler()
+{
+    for (auto pr : events)
+    {
+        rem_event(((my_epoll_data*)pr.second.data.ptr)->get_descriptor(), pr.second.events);
+    }
+    close(efd);
+}
+
 void epoll_handler::add_event(int fd, int mask, std::function<void(int)> handler)
 {
     std::cerr << "try to add descriptor " << fd << " to the epoll" << std::endl;
     epoll_event ev;
     memset(&ev, 0, sizeof(epoll_event));
-    my_epoll_data* data = new my_epoll_data(fd, handler);
+    auto data = new my_epoll_data(fd, handler);
     ev.data.ptr = reinterpret_cast<void*>(data);
     ev.events = mask;
+    events[fd] = ev;
     if (epoll_ctl(efd, EPOLL_CTL_ADD, fd, &ev) < 0)
     {
         throw std::runtime_error("error in epoll_ctl(EPOLL_CTL_ADD)\n" + std::string(strerror(errno)));
@@ -39,8 +49,14 @@ void epoll_handler::loop()
                 throw std::runtime_error("some error occured in epoll");
             }
             auto data = reinterpret_cast<my_epoll_data*>(evs[i].data.ptr);
+            if (evs[i].events & EPOLLRDHUP)
+            {
+                data->f(-data->get_descriptor()-1);
+                rem_event(data->get_descriptor(), EPOLLIN | EPOLLRDHUP);
+                continue;
+            }
 //            std::cerr << "descriptor " << data->get_descriptor() << " occured in epoll" << std::endl;
-            data->f();
+            data->f(data->get_descriptor());
             std::cerr << "done" << std::endl;
         }
     }
@@ -52,6 +68,11 @@ void epoll_handler::rem_event(int fd, int mask)
     epoll_event ev;
     memset(&ev, 0, sizeof(ev));
     ev.events = mask;
+    if (events.count(fd) != 0)
+    {
+        delete (my_epoll_data*)events[fd].data.ptr;
+        events.erase(fd);
+    }
     if (epoll_ctl(efd, EPOLL_CTL_DEL, fd, &ev) < 0)
     {
         throw std::runtime_error("Error in epoll_ctl(EPOLL_CTL_DEL):\n" + std::string(strerror(errno)));
