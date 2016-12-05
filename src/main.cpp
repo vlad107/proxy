@@ -50,7 +50,9 @@ int main(int argc, char *argv[])
         std::cerr << USAGE << std::endl;
         return 1;
     }
-    proxy_server server(std::make_shared<epoll_handler>());
-    server.start(port);
+    epoll_handler ep_handler;
+    proxy_server server(&ep_handler, port);
+    ep_handler.loop();
+    
     return 0;
 }

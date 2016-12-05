@@ -14,6 +14,7 @@
 const int BUFF_SIZE = 1024;
 
 const std::string SEPARATORs[2] = {"\r\n\r\n", "\n\n"};
+const std::string HTTP_END = "0\r\n\r\n";
 
 class http_buffer
 {
@@ -55,7 +56,7 @@ public:
     int get_out_socket();
     int get_in_socket();
     bool available_response();
-    void add_writer(std::shared_ptr<epoll_handler> efd);
+    void add_writer(epoll_handler *efd);
     void set_response_handler(std::function<void(std::string)>);
 
     void debug_response()
@@ -67,7 +68,7 @@ public:
 class transfer_data
 {
 public:
-    transfer_data(int fd, std::shared_ptr<epoll_handler> efd);
+    transfer_data(int fd, epoll_handler *efd);
     ~transfer_data();
     void read_all();
     void check_for_requests();
@@ -79,7 +80,7 @@ private:
     void manage_client_requests();
     int fd;
     int out_fd;
-    std::shared_ptr<epoll_handler> efd;
+    epoll_handler *efd;
     std::unique_ptr<http_buffer> client_buffer;
     std::unique_ptr<http_header> client_header;
     std::unique_ptr<http_buffer> response_buffer;

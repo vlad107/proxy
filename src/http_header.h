@@ -9,8 +9,6 @@ class http_header
     std::map<std::string, std::string> items;
     std::string get_item(std::string name);
 public:
-    enum REQUEST_TYPE {POST, GET};
-    REQUEST_TYPE type;
     http_header();
     bool empty();
     void parse(std::string header);

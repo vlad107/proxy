@@ -2,7 +2,10 @@
 
 epoll_handler::epoll_handler()
 {
-    efd = epoll_create1(0);
+    if ((efd = epoll_create1(0)) < 0)
+    {
+        throw std::runtime_error("Error in epoll_create:\n" + std::string(strerror(errno)));
+    }
 }
 
 epoll_handler::~epoll_handler()
@@ -11,7 +14,10 @@ epoll_handler::~epoll_handler()
     {
         rem_event(((my_epoll_data*)pr.second.data.ptr)->get_descriptor(), pr.second.events);
     }
-    close(efd);
+    if (close(efd) < 0)
+    {
+        throw std::runtime_error("Error in close():\n" + std::string(strerror(errno)));
+    }
 }
 
 void epoll_handler::add_event(int fd, int mask, std::function<void(int)> handler)

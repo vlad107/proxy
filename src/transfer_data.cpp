@@ -192,7 +192,7 @@ void host_data::add_response(std::string resp)
     std::cerr << "response was added" << std::endl;
 }
 
-void host_data::add_writer(std::shared_ptr<epoll_handler> efd)
+void host_data::add_writer(epoll_handler *efd)
 {
     efd->add_event(fd, EPOLLOUT, [&](int fd)
     {
@@ -204,12 +204,12 @@ void host_data::add_writer(std::shared_ptr<epoll_handler> efd)
     });
 }
 
-transfer_data::transfer_data(int fd, std::shared_ptr<epoll_handler> efd)
+transfer_data::transfer_data(int fd, epoll_handler *efd)
 {
     this->fd = fd;
-    this->out_fd = dup(fd);
+    this->out_fd = dup(fd); // TODO: error checking
     this->efd = efd;
-    this->client_buffer = std::make_unique<http_buffer>();
+    this->client_buffer = std::make_unique<http_buffer>(); // fd, out_fd may leak
     this->client_header = std::make_unique<http_header>();
     this->response_buffer = std::make_unique<http_buffer>();
     initialize();
@@ -247,7 +247,7 @@ void transfer_data::manage_client_requests()
         if (available_len >= body_len)
         {
             std::string req = client_buffer->extract_front_http(body_len);
-            std::string host = client_header->get_host(); // TODO: or IP?
+            std::string host = client_header->get_host(); // 
             host = tcp_helper::normalize(host);
             result_q.push(host);
             if (hosts.count(host) == 0)
