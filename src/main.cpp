@@ -29,30 +29,16 @@ int main(int argc, char *argv[])
     int port;
     if (argc == 1)
     {
-        port = 1555;
+        port = 7777;
     } else if (argc == 2)
     {
-        try
-        {
-            std::string port_s(argv[1]);
-            size_t ptr;
-            port = std::stoi(port_s, &ptr);
-            if (ptr != port_s.size())
-            {
-                throw std::runtime_error("");
-            }
-        } catch (...)
-        {
-            std::cerr << USAGE << std::endl;
-            return 1;
-        }
+        port = std::stoi(std::string(argv[1]));
     } else {
         std::cerr << USAGE << std::endl;
         return 1;
     }
-    epoll_handler ep_handler;
-    proxy_server server(&ep_handler, port);
-    ep_handler.loop();
-    
+    epoll_handler efd;
+    proxy_server server(&efd, port);
+    efd.loop();
     return 0;
 }
