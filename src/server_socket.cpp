@@ -2,13 +2,13 @@
 
 server_socket::server_socket(int port)
 {
-    sfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sfd < 0)
+    sfd = std::make_unique<sockfd>(socket(AF_INET, SOCK_STREAM, 0));
+    if (sfd->getd() < 0)
     {
         throw std::runtime_error("error in creating socket");
     }
     int ok = 1;
-    if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &ok, sizeof(ok)) < 0)
+    if (setsockopt(sfd->getd(), SOL_SOCKET, SO_REUSEADDR, &ok, sizeof(ok)) < 0)
     {
         throw std::runtime_error("error in setsockopt():\n" + std::string(strerror(errno)));
     }
@@ -17,24 +17,19 @@ server_socket::server_socket(int port)
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = INADDR_ANY;
-    if (bind(sfd, (struct sockaddr*) &addr, sizeof(struct sockaddr)) < 0)
+    if (bind(sfd->getd(), (struct sockaddr*) &addr, sizeof(struct sockaddr)) < 0)
     {
         throw std::runtime_error("error in bind()");
     }
-    if (listen(sfd, BACKLOG) < 0)
+    if (listen(sfd->getd(), BACKLOG) < 0)
     {
         throw std::runtime_error("error in listen()");
     }
 }
 
-server_socket::~server_socket()
-{
-    close(sfd);
-}
-
 int server_socket::get_socket()
 {
-    return sfd;
+    return sfd->getd();
 }
 
 int server_socket::accept(int fd)
@@ -44,7 +39,7 @@ int server_socket::accept(int fd)
     int cfd;
     while (true)
     {
-        cfd = ::accept(sfd, (sockaddr*)&addr, &addr_len);
+        cfd = ::accept(sfd->getd(), (sockaddr*)&addr, &addr_len);
         if ((cfd < 0) && (errno == EINTR)) continue;
         break;
     }

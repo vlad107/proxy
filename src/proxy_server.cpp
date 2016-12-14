@@ -10,15 +10,15 @@ proxy_server::proxy_server(epoll_handler *efd, int port)
         if (fd < 0)
         {
             fd = -fd - 1;
-            if (clients.count(fd) != 0)
-            {
-                std::cerr << "removing " << fd << " descriptor" << std::endl;
-                clients.erase(fd);
-            }
+            assert(clients.count(fd) > 0);
+            std::cerr << "removing " << fd << " descriptor" << std::endl;
+            clients.erase(fd);
+        } else
+        {
+            std::cerr << "accept " << fd << " descriptor" << std::endl;
+            int cfd = sfd->accept(fd);
+            clients[cfd] = std::make_unique<transfer_data>(cfd, efd); // TODO: map is unnecessary
         }
-        std::cerr << "accept " << fd << " descriptor" << std::endl;
-        fd = sfd->accept(fd);
-        clients[fd] = std::make_unique<transfer_data>(fd, efd);
     };
     efd->add_event(sfd->get_socket(), EPOLLIN, accept_handler);
 }

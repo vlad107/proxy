@@ -116,23 +116,23 @@ bool http_buffer::write_all(int fd)
 host_data::host_data(std::string host)
 {
     std::cerr << "opening connection" << std::endl;
-    fd = tcp_helper::open_connection(host);
-    tcp_helper::make_nonblocking(fd);
-    std::cout << "connection opened to descriptor " << fd << std::endl;
-    fd_in = dup(fd);
-    tcp_helper::make_nonblocking(fd_in);
-    std::cerr << "descriptor for writing to host " << host << " is " << fd << std::endl;
-    std::cerr << "descriptor for reading from host " << host << " is " << fd_in << std::endl;
+    fd = std::make_unique<sockfd>(tcp_helper::open_connection(host));
+    tcp_helper::make_nonblocking(fd->getd());
+    std::cout << "connection opened to descriptor " << fd->getd() << std::endl;
+    int tmpfd = dup(fd->getd());
+    if (tmpfd < 0)
+    {
+        throw std::runtime_error("error in dup()");
+    }
+    fd_in = std::make_unique<sockfd>(tmpfd);
+    tcp_helper::make_nonblocking(fd_in->getd());
+    std::cerr << "descriptor for writing to host " << host << " is " << fd->getd() << std::endl;
+    std::cerr << "descriptor for reading from host " << host << " is " << fd_in->getd() << std::endl;
     buffer_in = std::make_unique<http_buffer>();
     buffer_out = std::make_unique<http_buffer>();
     response_header = std::make_unique<http_header>();
 }
 
-host_data::~host_data()
-{
-    close(fd);
-    close(fd_in);
-}
 
 bool host_data::empty_in()
 {
@@ -151,12 +151,12 @@ bool host_data::write_all(int fd)
 
 int host_data::get_out_socket()
 {
-    return fd;
+    return fd->getd();
 }
 
 int host_data::get_in_socket()
 {
-    return fd_in;
+    return fd_in->getd();
 }
 
 bool host_data::available_response()
@@ -194,7 +194,7 @@ void host_data::add_response(std::string resp)
 
 void host_data::add_writer(epoll_handler *efd)
 {
-    efd->add_event(fd, EPOLLOUT, [&](int fd)
+    efd->add_event(fd->getd(), EPOLLOUT, [&](int fd)
     {
         buffer_in->write_all(fd);
         if (buffer_in->empty())
@@ -206,8 +206,13 @@ void host_data::add_writer(epoll_handler *efd)
 
 transfer_data::transfer_data(int fd, epoll_handler *efd)
 {
-    this->fd = fd;
-    this->out_fd = dup(fd); // TODO: error checking
+    this->fd = std::make_unique<sockfd>(fd);
+    int tmpfd = dup(fd);
+    if (tmpfd < 0)
+    {
+        throw std::runtime_error("error in dup()");
+    }
+    this->out_fd = std::make_unique<sockfd>(tmpfd);
     this->efd = efd;
     this->client_buffer = std::make_unique<http_buffer>(); // fd, out_fd may leak
     this->client_header = std::make_unique<http_header>();
@@ -215,16 +220,10 @@ transfer_data::transfer_data(int fd, epoll_handler *efd)
     initialize();
 }
 
-transfer_data::~transfer_data()
-{
-    close(fd);
-    close(out_fd);
-}
-
 void transfer_data::initialize()
 {
-    tcp_helper::make_nonblocking(fd);
-    efd->add_event(fd, EPOLLIN | EPOLLRDHUP, [&](int fd)
+    tcp_helper::make_nonblocking(fd->getd());
+    efd->add_event(fd->getd(), EPOLLIN | EPOLLRDHUP, [&](int fd)
     {
         std::cerr << "new data on " << fd << " descriptor" << std::endl;
         client_buffer->add_chunk(tcp_helper::read_all(fd));
@@ -247,7 +246,7 @@ void transfer_data::manage_client_requests()
         if (available_len >= body_len)
         {
             std::string req = client_buffer->extract_front_http(body_len);
-            std::string host = client_header->get_host(); // 
+            std::string host = client_header->get_host();
             host = tcp_helper::normalize(host);
             result_q.push(host);
             if (hosts.count(host) == 0)
@@ -263,7 +262,7 @@ void transfer_data::manage_client_requests()
                         result_q.pop();
                         if (response_buffer->empty())
                         {
-                            efd->add_event(out_fd, EPOLLOUT, [&](int out_fd)
+                            efd->add_event(out_fd->getd(), EPOLLOUT, [&](int out_fd)
                             {
                                 std::cerr << "client socket is read to write" << std::endl;
                                 if (response_buffer->write_all(out_fd))
@@ -296,5 +295,5 @@ void transfer_data::manage_client_requests()
 
 int transfer_data::get_descriptor()
 {
-    return fd;
+    return fd->getd();
 }

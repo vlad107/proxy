@@ -10,14 +10,8 @@ epoll_handler::epoll_handler()
 
 epoll_handler::~epoll_handler()
 {
-    for (auto pr : events)
-    {
-        rem_event(((my_epoll_data*)pr.second.data.ptr)->get_descriptor(), pr.second.events);
-    }
-    if (close(efd) < 0)
-    {
-        throw std::runtime_error("Error in close():\n" + std::string(strerror(errno)));
-    }
+    assert(close(efd) == 0);
+    assert(events.empty());
 }
 
 void epoll_handler::add_event(int fd, int mask, std::function<void(int)> handler)

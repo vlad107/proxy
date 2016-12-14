@@ -3,15 +3,23 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <stdexcept>
+#include <memory>
+#include <iostream>
 #include <memory.h>
+
+#include "sockfd.h"
 
 class server_socket
 {
-    int sfd;
+    std::unique_ptr<sockfd> sfd;
     static const int BACKLOG = 32;
 public:
+    server_socket &operator=(server_socket const&) = delete;
+    server_socket(server_socket const&) = delete;
+    server_socket &operator=(server_socket&&) = delete;
+    server_socket(server_socket&&) = delete;
+
     server_socket(int port);
-    ~server_socket();
     int get_socket();
     int accept(int fd);
 };

@@ -12,7 +12,7 @@
 #include <netdb.h>
 #include <iostream>
 
-class tcp_helper
+class tcp_helper // TODO: namespace?
 {
 public:
     static void make_nonblocking(int fd);

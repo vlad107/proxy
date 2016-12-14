@@ -3,6 +3,7 @@
 #include "http_header.h"
 #include "epoll_handler.h"
 #include "tcp_helper.h"
+#include "sockfd.h"
 
 #include <unordered_map>
 #include <deque>
@@ -43,11 +44,15 @@ class host_data
     std::unique_ptr<http_buffer> buffer_in;
     std::unique_ptr<http_buffer> buffer_out;
     std::unique_ptr<http_header> response_header;
-    int fd;
-    int fd_in;
+    std::unique_ptr<sockfd> fd;
+    std::unique_ptr<sockfd> fd_in;
 public:
+    host_data &operator=(host_data const&) = delete;
+    host_data(host_data const&) = delete;
+    host_data &operator=(host_data&&) = delete;
+    host_data(host_data&&) = delete;
+
     host_data(std::string host);
-    ~host_data();
     void add_request(std::string req);
     bool write_all(int fd);
     void add_response(std::string resp);
@@ -68,8 +73,12 @@ public:
 class transfer_data
 {
 public:
+    transfer_data &operator=(transfer_data const&) = delete;
+    transfer_data(transfer_data const&) = delete;
+    transfer_data &operator=(transfer_data&&) = delete;
+    transfer_data(transfer_data&&) = delete;
+
     transfer_data(int fd, epoll_handler *efd);
-    ~transfer_data();
     void read_all();
     void check_for_requests();
     int get_descriptor();
@@ -78,8 +87,8 @@ private:
     std::queue<std::string> result_q;
     void initialize();
     void manage_client_requests();
-    int fd;
-    int out_fd;
+    std::unique_ptr<sockfd> fd;
+    std::unique_ptr<sockfd> out_fd;
     epoll_handler *efd;
     std::unique_ptr<http_buffer> client_buffer;
     std::unique_ptr<http_header> client_header;

@@ -13,6 +13,11 @@ class proxy_server
     std::unique_ptr<server_socket> sfd;
     std::map<int, std::unique_ptr<transfer_data>> clients;
 public:
+    proxy_server &operator=(proxy_server const&) = delete;
+    proxy_server(proxy_server const&) = delete;
+    proxy_server &operator=(proxy_server&&) = delete;
+    proxy_server(proxy_server&&) = delete;
+
     proxy_server(epoll_handler *efd, int port);
     ~proxy_server();
     void start(int port);
