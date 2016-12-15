@@ -4,6 +4,7 @@
 #include "epoll_handler.h"
 #include "tcp_helper.h"
 #include "sockfd.h"
+#include "event_registration.h"
 
 #include <unordered_map>
 #include <deque>
@@ -46,13 +47,17 @@ class host_data
     std::unique_ptr<http_parser> response_header;
     std::unique_ptr<sockfd> server_fdin;
     std::unique_ptr<sockfd> server_fdout;
+    std::function<void()> disconnect_handler;
+    std::function<void(int)> response_handler;
+    epoll_handler *efd;
+    std::unique_ptr<event_registration> reg;
 public:
     host_data &operator=(host_data const&) = delete;
     host_data(host_data const&) = delete;
     host_data &operator=(host_data&&) = delete;
     host_data(host_data&&) = delete;
 
-    host_data(std::string host);
+    host_data(std::string host, epoll_handler *_efd);
     void add_request(std::string req);
     bool write_all(int fd);
     void add_response(std::string resp);
@@ -62,7 +67,9 @@ public:
     int get_in_socket();
     bool available_response();
     void add_writer(epoll_handler *efd);
-    void set_response_handler(std::function<void(std::string)>);
+    void set_disconnect_handler(std::function<void()>);
+    void set_response_handler(std::function<void(int)>);
+    void start();
 
     void debug_response()
     {
