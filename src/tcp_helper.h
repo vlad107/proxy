@@ -12,14 +12,12 @@
 #include <netdb.h>
 #include <iostream>
 
-class tcp_helper // TODO: namespace?
+namespace tcp_helper
 {
-public:
-    static void make_nonblocking(int fd);
-    static std::string read_all(int fd);
-    static int open_connection(std::string host);
-    static std::string normalize(std::string host);
-    tcp_helper();
-};
+    void make_nonblocking(int fd);
+    std::string read_all(int fd);
+    int open_connection(std::string host);
+    std::string normalize(std::string host);
+}
 
 #endif // TCP_HELPER_H

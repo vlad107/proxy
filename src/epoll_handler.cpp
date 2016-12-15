@@ -11,6 +11,7 @@ epoll_handler::epoll_handler()
 
 epoll_handler::~epoll_handler()
 {
+    std::cerr << "closing epoll handler" << std::endl;
     assert(close(efd) == 0);
     assert(events.empty());
 }
@@ -56,12 +57,10 @@ void epoll_handler::loop()
     }
 }
 
-void epoll_handler::rem_event(int fd, int mask)
+void epoll_handler::rem_event(int fd)
 {
     std::cerr << "removing descriptor " << fd << " from epoll" << std::endl;
     assert(events.count(fd) != 0);
-    epoll_event ev{};
-    ev.events = mask;
     events.erase(events.find(fd));
     if (epoll_ctl(efd, EPOLL_CTL_DEL, fd, nullptr) < 0)
     {

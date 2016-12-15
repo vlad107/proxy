@@ -33,7 +33,7 @@ void http_buffer::add_chunk(std::string s)
     }
 }
 
-bool http_buffer::was_header_end()
+bool http_buffer::header_available()
 {
     return _was_header_end;
 }
@@ -116,21 +116,20 @@ bool http_buffer::write_all(int fd)
 host_data::host_data(std::string host)
 {
     std::cerr << "opening connection" << std::endl;
-    fd = std::make_unique<sockfd>(tcp_helper::open_connection(host));
-    tcp_helper::make_nonblocking(fd->getd());
-    std::cout << "connection opened to descriptor " << fd->getd() << std::endl;
-    int tmpfd = dup(fd->getd());
+    server_fdout = std::make_unique<sockfd>(tcp_helper::open_connection(host));
+    tcp_helper::make_nonblocking(server_fdout->getd());
+    int tmpfd = dup(server_fdout->getd());
     if (tmpfd < 0)
     {
         throw std::runtime_error("error in dup()");
     }
-    fd_in = std::make_unique<sockfd>(tmpfd);
-    tcp_helper::make_nonblocking(fd_in->getd());
-    std::cerr << "descriptor for writing to host " << host << " is " << fd->getd() << std::endl;
-    std::cerr << "descriptor for reading from host " << host << " is " << fd_in->getd() << std::endl;
+    server_fdin = std::make_unique<sockfd>(tmpfd);
+    tcp_helper::make_nonblocking(server_fdin->getd());
+    std::cerr << "descriptor for writing to host " << host << " is " << server_fdout->getd() << std::endl;
+    std::cerr << "descriptor for reading from host " << host << " is " << server_fdin->getd() << std::endl;
     buffer_in = std::make_unique<http_buffer>();
     buffer_out = std::make_unique<http_buffer>();
-    response_header = std::make_unique<http_header>();
+    response_header = std::make_unique<http_parser>();
 }
 
 
@@ -151,21 +150,21 @@ bool host_data::write_all(int fd)
 
 int host_data::get_out_socket()
 {
-    return fd->getd();
+    return server_fdout->getd();
 }
 
 int host_data::get_in_socket()
 {
-    return fd_in->getd();
+    return server_fdin->getd();
 }
 
 bool host_data::available_response()
 {
-    if (buffer_out->was_header_end())
+    if (buffer_out->header_available())
     {
         if (response_header->empty())
         {
-            response_header->parse(buffer_out->get_header());
+            response_header->parse_header(buffer_out->get_header());
         }
         int available_len = buffer_out->size() - buffer_out->get_header_end();
         int body_len = response_header->get_content_len();
@@ -194,14 +193,14 @@ void host_data::add_response(std::string resp)
 
 void host_data::add_writer(epoll_handler *efd)
 {
-    efd->add_event(fd->getd(), EPOLLOUT, [&](int fd, int event)
+    efd->add_event(server_fdout->getd(), EPOLLOUT, [&](int fd, int event)
     {
         if (event & EPOLLOUT)
         {
             buffer_in->write_all(fd);
             if (buffer_in->empty())
             {
-                efd->rem_event(fd, EPOLLOUT);
+                efd->rem_event(fd);
             }
             event ^= EPOLLOUT;
         }
@@ -211,49 +210,40 @@ void host_data::add_writer(epoll_handler *efd)
 
 transfer_data::transfer_data(int _fd, epoll_handler *_efd)
 {
-    fd = std::make_unique<sockfd>(_fd);
+    client_infd = std::make_unique<sockfd>(_fd);
     int tmpfd = dup(_fd);
     if (tmpfd < 0)
     {
         throw std::runtime_error("error in dup()");
     }
-    out_fd = std::make_unique<sockfd>(tmpfd);
+    client_outfd = std::make_unique<sockfd>(tmpfd);
     efd = _efd;
     client_buffer = std::make_unique<http_buffer>();
-    client_header = std::make_unique<http_header>();
+    request_header = std::make_unique<http_parser>();
     response_buffer = std::make_unique<http_buffer>();
-    tcp_helper::make_nonblocking(fd->getd());
-}
-
-transfer_data::~transfer_data()
-{
-//    efd->rem_event(fd->getd(), EPOLLIN | EPOLLRDHUP);
+    tcp_helper::make_nonblocking(client_infd->getd());
 }
 
 void transfer_data::data_occured(int fd)
 {
     client_buffer->add_chunk(tcp_helper::read_all(fd));
     client_buffer->debug_write();
-    manage_client_requests();
-}
-
-void transfer_data::manage_client_requests()
-{
-    while (client_buffer->was_header_end())
+    while (client_buffer->header_available())
     {
-        std::cerr << "header detected!" << std::endl;
-        if (client_header->empty())
+        std::cerr << "request_header available" << std::endl;
+        if (request_header->empty())
         {
-            client_header->parse(client_buffer->get_header());
+            request_header->parse_header(client_buffer->get_header());
         }
-        int body_len = client_header->get_content_len();
+        int body_len = request_header->get_content_len();
         int available_len = client_buffer->size() - client_buffer->get_header_end();
         if (available_len >= body_len)
         {
+            std::cerr << "full http-request available" << std::endl;
             std::string req = client_buffer->extract_front_http(body_len);
-            std::string host = client_header->get_host();
+            std::string host = request_header->get_host();
             host = tcp_helper::normalize(host);
-            result_q.push(host);
+            result_q.push(host);    // queue for response to client
             if (hosts.count(host) == 0)
             {
                 hosts[host] = std::make_unique<host_data>(host);
@@ -269,14 +259,14 @@ void transfer_data::manage_client_requests()
                             result_q.pop();
                             if (response_buffer->empty())
                             {
-                                efd->add_event(out_fd->getd(), EPOLLOUT, [&](int out_fd, int event)
+                                efd->add_event(client_outfd->getd(), EPOLLOUT, [&](int out_fd, int event)
                                 {
                                     if (event & EPOLLOUT)
                                     {
                                         std::cerr << "EPOLLOUT on " << out_fd << std::endl;
                                         if (response_buffer->write_all(out_fd))
                                         {
-                                            efd->rem_event(out_fd, EPOLLOUT);
+                                            efd->rem_event(out_fd);
                                         }
                                         event ^= EPOLLOUT;
                                     }
@@ -299,7 +289,7 @@ void transfer_data::manage_client_requests()
                     {
                         if (cur_host->write_all(out_fd))
                         {
-                            efd->rem_event(cur_host->get_out_socket(), EPOLLOUT);
+                            efd->rem_event(cur_host->get_out_socket());
                         }
                         event ^= EPOLLOUT;
                     }
@@ -307,12 +297,12 @@ void transfer_data::manage_client_requests()
                 });
             }
             cur_host->add_request(req);
-            client_header->clear();
+            request_header->clear();
         }
     }
 }
 
 int transfer_data::get_descriptor()
 {
-    return fd->getd();
+    return client_infd->getd();
 }

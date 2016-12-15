@@ -1,10 +1,5 @@
 #include "tcp_helper.h"
 
-tcp_helper::tcp_helper()
-{
-
-}
-
 void tcp_helper::make_nonblocking(int fd)
 {
     int flags = fcntl(fd, F_GETFL, 0);

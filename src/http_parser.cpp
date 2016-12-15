@@ -1,30 +1,32 @@
-#include "http_header.h"
+#include "http_parser.h"
 
-http_header::http_header()
+http_parser::http_parser()
 {
-
+    is_empty = true;
 }
 
-bool http_header::empty()
+bool http_parser::empty()
 {
-    return items.empty();
+    return is_empty;
 }
 
-std::string http_header::get_item(std::string name)
+std::string http_parser::get_header_item(std::string name)
 {
-    if (items.count(name) == 0)
+    if (header_items.count(name) == 0)
     {
         throw std::runtime_error("item " + name + " not found in http-request");
     }
-    return items[name];
+    return header_items[name];
 }
 
-void http_header::parse(std::string header)
+void http_parser::parse_header(std::string header)
 {
     std::cerr << "parsing of:\n" << header << "\n---" << std::endl;
     std::stringstream in(header);
     std::string line;
     getline(in, line); // type of request/response first line with version of HTTP
+    header_items.clear();
+    is_empty = false;
     while (getline(in, line))
     {
         int sep = line.find(": ");
@@ -32,7 +34,7 @@ void http_header::parse(std::string header)
         {
             std::string name = line.substr(0, sep);
             std::string data = line.substr(sep + 2);
-            items[name] = data;
+            header_items[name] = data;
         } else
         {
             std::cerr << "Warning: suspicious line in header of HTTP-request: " << line << std::endl;
@@ -41,17 +43,18 @@ void http_header::parse(std::string header)
     std::cerr << "parsed" << std::endl;
 }
 
-void http_header::clear()
+void http_parser::clear()
 {
-    items.clear();
+    is_empty = true;
+    header_items.clear();
 }
 
-int http_header::get_content_len()
+int http_parser::get_content_len()
 {
     int len;
     try
     {
-        len = stoi(get_item("Content-Length"));
+        len = stoi(get_header_item("Content-Length"));
     } catch (...)
     {
         len = 0;
@@ -59,7 +62,7 @@ int http_header::get_content_len()
     return len;
 }
 
-std::string http_header::get_host()
+std::string http_parser::get_host()
 {
-    return get_item("Host");
+    return get_header_item("Host");
 }
