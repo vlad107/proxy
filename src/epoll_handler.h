@@ -29,7 +29,7 @@ public:
 class epoll_handler
 {
     int efd;
-    std::unordered_map<int, epoll_event> events;
+    std::unordered_map<int, std::function<void(int, int)>> events;
     static const int MAX_EVENTS = 1024;
 public:
     epoll_handler& operator=(epoll_handler const&) = delete;

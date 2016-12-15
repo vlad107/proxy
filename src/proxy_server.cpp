@@ -12,7 +12,7 @@ proxy_server::proxy_server(epoll_handler *efd, int port)
             int cfd = sfd->accept(fd);
             auto data = std::make_shared<transfer_data>(cfd, efd);
 //            transfer_data data(cfd, efd);
-            efd->add_event(cfd, EPOLLIN | EPOLLRDHUP, [data, efd, cfd](int _fd, int _event)
+            efd->add_event(cfd, EPOLLIN | EPOLLRDHUP, [data, efd](int _fd, int _event)
             {
                 if (_event & EPOLLIN)
                 {
@@ -23,7 +23,8 @@ proxy_server::proxy_server(epoll_handler *efd, int port)
                 if (_event & EPOLLRDHUP)
                 {
                     std::cerr << "EPOLLRDHUP on " << _fd << " client" << std::endl;
-                    efd->rem_event(cfd, EPOLLIN | EPOLLRDHUP);
+                    std::cerr << "i'm here" << std::endl;
+                    efd->rem_event(_fd, EPOLLIN | EPOLLRDHUP);
                     _event ^= EPOLLRDHUP;
                 }
                 assert(_event == 0);

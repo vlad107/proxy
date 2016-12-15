@@ -227,7 +227,7 @@ transfer_data::transfer_data(int _fd, epoll_handler *_efd)
 
 transfer_data::~transfer_data()
 {
-    efd->rem_event(fd->getd(), EPOLLIN | EPOLLRDHUP);
+//    efd->rem_event(fd->getd(), EPOLLIN | EPOLLRDHUP);
 }
 
 void transfer_data::data_occured(int fd)
