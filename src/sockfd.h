@@ -8,6 +8,10 @@ class sockfd
 {
     int fd;
 public:
+    sockfd &operator=(sockfd const&) = delete;
+    sockfd(sockfd const&) = delete;
+    sockfd &operator=(sockfd&&) = delete;
+    sockfd(sockfd&&) = delete;
     sockfd();
     sockfd(int fd);
     ~sockfd();

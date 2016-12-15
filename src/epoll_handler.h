@@ -13,12 +13,12 @@
 class my_epoll_data
 {
     int fd;
-    std::function<void(int)> func;
+    std::function<void(int, int)> func;
 public:
-    my_epoll_data(int fd, std::function<void(int)> func) : fd(fd), func(func) {}
-    void f(int fd)
+    my_epoll_data(int fd, std::function<void(int, int)> func) : fd(fd), func(func) {}
+    void f(int fd, int event)
     {
-        func(fd);
+        func(fd, event);
     }
     int get_descriptor()
     {
@@ -40,7 +40,7 @@ public:
     epoll_handler();
     ~epoll_handler();
 
-    void add_event(int sfd, int mask, std::function<void(int)> handler);
+    void add_event(int sfd, int mask, std::function<void(int, int)> handler);
     void rem_event(int sfd, int mask);
     void loop();
 };

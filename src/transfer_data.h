@@ -79,13 +79,14 @@ public:
     transfer_data(transfer_data&&) = delete;
 
     transfer_data(int fd, epoll_handler *efd);
+    ~transfer_data();
     void read_all();
     void check_for_requests();
     int get_descriptor();
     void make_nonblocking();
+    void data_occured(int fd);
 private:
     std::queue<std::string> result_q;
-    void initialize();
     void manage_client_requests();
     std::unique_ptr<sockfd> fd;
     std::unique_ptr<sockfd> out_fd;

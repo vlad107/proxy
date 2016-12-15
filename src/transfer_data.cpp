@@ -194,42 +194,47 @@ void host_data::add_response(std::string resp)
 
 void host_data::add_writer(epoll_handler *efd)
 {
-    efd->add_event(fd->getd(), EPOLLOUT, [&](int fd)
+    efd->add_event(fd->getd(), EPOLLOUT, [&](int fd, int event)
     {
-        buffer_in->write_all(fd);
-        if (buffer_in->empty())
+        if (event & EPOLLOUT)
         {
-            efd->rem_event(fd, EPOLLOUT);
+            buffer_in->write_all(fd);
+            if (buffer_in->empty())
+            {
+                efd->rem_event(fd, EPOLLOUT);
+            }
+            event ^= EPOLLOUT;
         }
+        assert(event == 0);
     });
 }
 
-transfer_data::transfer_data(int fd, epoll_handler *efd)
+transfer_data::transfer_data(int _fd, epoll_handler *_efd)
 {
-    this->fd = std::make_unique<sockfd>(fd);
-    int tmpfd = dup(fd);
+    fd = std::make_unique<sockfd>(_fd);
+    int tmpfd = dup(_fd);
     if (tmpfd < 0)
     {
         throw std::runtime_error("error in dup()");
     }
-    this->out_fd = std::make_unique<sockfd>(tmpfd);
-    this->efd = efd;
-    this->client_buffer = std::make_unique<http_buffer>(); // fd, out_fd may leak
-    this->client_header = std::make_unique<http_header>();
-    this->response_buffer = std::make_unique<http_buffer>();
-    initialize();
+    out_fd = std::make_unique<sockfd>(tmpfd);
+    efd = _efd;
+    client_buffer = std::make_unique<http_buffer>();
+    client_header = std::make_unique<http_header>();
+    response_buffer = std::make_unique<http_buffer>();
+    tcp_helper::make_nonblocking(fd->getd());
 }
 
-void transfer_data::initialize()
+transfer_data::~transfer_data()
 {
-    tcp_helper::make_nonblocking(fd->getd());
-    efd->add_event(fd->getd(), EPOLLIN | EPOLLRDHUP, [&](int fd)
-    {
-        std::cerr << "new data on " << fd << " descriptor" << std::endl;
-        client_buffer->add_chunk(tcp_helper::read_all(fd));
-        client_buffer->debug_write();
-        manage_client_requests();
-    });
+    efd->rem_event(fd->getd(), EPOLLIN | EPOLLRDHUP);
+}
+
+void transfer_data::data_occured(int fd)
+{
+    client_buffer->add_chunk(tcp_helper::read_all(fd));
+    client_buffer->debug_write();
+    manage_client_requests();
 }
 
 void transfer_data::manage_client_requests()
@@ -252,39 +257,53 @@ void transfer_data::manage_client_requests()
             if (hosts.count(host) == 0)
             {
                 hosts[host] = std::make_unique<host_data>(host);
-                efd->add_event(hosts[host]->get_in_socket(), EPOLLIN | EPOLLRDHUP, [&, host, this](int ffd)
+                efd->add_event(hosts[host]->get_in_socket(), EPOLLIN | EPOLLRDHUP, [&, host, this](int ffd, int event)
                 {
-                    std::string response = tcp_helper::read_all(ffd);
-                    hosts[host]->add_response(response);
-                    while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
+                    if (event & EPOLLIN)
                     {
-                        std::string http_response = hosts[result_q.front()]->extract_response();
-                        result_q.pop();
-                        if (response_buffer->empty())
+                        std::string response = tcp_helper::read_all(ffd);
+                        hosts[host]->add_response(response);
+                        while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
                         {
-                            efd->add_event(out_fd->getd(), EPOLLOUT, [&](int out_fd)
+                            std::string http_response = hosts[result_q.front()]->extract_response();
+                            result_q.pop();
+                            if (response_buffer->empty())
                             {
-                                std::cerr << "client socket is read to write" << std::endl;
-                                if (response_buffer->write_all(out_fd))
+                                efd->add_event(out_fd->getd(), EPOLLOUT, [&](int out_fd, int event)
                                 {
-                                    efd->rem_event(out_fd, EPOLLOUT);
-                                }
-                            });
+                                    if (event & EPOLLOUT)
+                                    {
+                                        std::cerr << "EPOLLOUT on " << out_fd << std::endl;
+                                        if (response_buffer->write_all(out_fd))
+                                        {
+                                            efd->rem_event(out_fd, EPOLLOUT);
+                                        }
+                                        event ^= EPOLLOUT;
+                                    }
+                                    assert(event == 0);
+                                });
+                            }
+                            response_buffer->add_chunk(http_response);
                         }
-                        response_buffer->add_chunk(http_response);
+                        event ^= EPOLLIN;
                     }
+                    // TODO: manage EPOLLRDHUP here
                 });
             }
             auto &cur_host = hosts[host];
             if (cur_host->empty_in())
             {
-                efd->add_event(cur_host->get_out_socket(), EPOLLOUT, [&](int out_fd)
+                efd->add_event(cur_host->get_out_socket(), EPOLLOUT, [&](int out_fd, int event)
                 {
-                    if (cur_host->write_all(out_fd))
+                    if (event & EPOLLOUT)
                     {
-                        efd->rem_event(cur_host->get_out_socket(), EPOLLOUT);
+                        if (cur_host->write_all(out_fd))
+                        {
+                            efd->rem_event(cur_host->get_out_socket(), EPOLLOUT);
+                        }
+                        event ^= EPOLLOUT;
                     }
-
+                    assert(event == 0);
                 });
             }
             cur_host->add_request(req);

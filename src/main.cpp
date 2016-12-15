@@ -23,6 +23,7 @@ void set_sigactions()
     sigaction(SIGTERM, &act, nullptr);
 }
 
+
 int main(int argc, char *argv[])
 {
     set_sigactions();

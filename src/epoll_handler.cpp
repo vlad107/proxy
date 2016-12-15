@@ -14,12 +14,12 @@ epoll_handler::~epoll_handler()
     assert(events.empty());
 }
 
-void epoll_handler::add_event(int fd, int mask, std::function<void(int)> handler)
+void epoll_handler::add_event(int fd, int mask, std::function<void(int, int)> handler)
 {
     std::cerr << "try to add descriptor " << fd << " to the epoll" << std::endl;
     epoll_event ev;
     memset(&ev, 0, sizeof(epoll_event));
-    auto data = new my_epoll_data(fd, handler);
+    auto data = new my_epoll_data(fd, handler); // TODO: obviously memory leak
     ev.data.ptr = reinterpret_cast<void*>(data);
     ev.events = mask;
     events[fd] = ev;
@@ -49,15 +49,7 @@ void epoll_handler::loop()
                 throw std::runtime_error("some error occured in epoll");
             }
             auto data = reinterpret_cast<my_epoll_data*>(evs[i].data.ptr);
-            if (evs[i].events & EPOLLRDHUP)
-            {
-                data->f(-data->get_descriptor()-1);
-                rem_event(data->get_descriptor(), EPOLLIN | EPOLLRDHUP);
-                continue;
-            }
-//            std::cerr << "descriptor " << data->get_descriptor() << " occured in epoll" << std::endl;
-            data->f(data->get_descriptor());
-            std::cerr << "done" << std::endl;
+            data->f(data->get_descriptor(), evs[i].events);
         }
     }
 }
