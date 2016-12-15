@@ -66,7 +66,6 @@ public:
     int get_out_socket();
     int get_in_socket();
     bool available_response();
-    void add_writer(epoll_handler *efd);
     void set_disconnect_handler(std::function<void()>);
     void set_response_handler(std::function<void(int)>);
     void start();

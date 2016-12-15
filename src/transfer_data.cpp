@@ -192,23 +192,6 @@ void host_data::add_response(std::string resp)
     std::cerr << "response was added" << std::endl;
 }
 
-void host_data::add_writer(epoll_handler *efd)
-{
-    efd->add_event(server_fdout->getd(), EPOLLOUT, [&](int fd, int event)
-    {
-        if (event & EPOLLOUT)
-        {
-            buffer_in->write_all(fd);
-            if (buffer_in->empty())
-            {
-                efd->rem_event(fd);
-            }
-            event ^= EPOLLOUT;
-        }
-        assert(event == 0);
-    });
-}
-
 void host_data::set_disconnect_handler(std::function<void()> handler)
 {
     disconnect_handler = handler;
