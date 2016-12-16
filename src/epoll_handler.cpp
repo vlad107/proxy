@@ -1,5 +1,4 @@
 #include "epoll_handler.h"
-// TODO: rewrite everything in event_registration
 
 epoll_handler::epoll_handler()
 {

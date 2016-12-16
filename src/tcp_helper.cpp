@@ -53,6 +53,7 @@ int tcp_helper::open_connection(std::string host)
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     struct hostent *server = gethostbyname(host.c_str()); // TODO: asynchronously with epollfd
+    std::cerr << "ip for " << host << " is " << server->h_name << std::endl;
     bcopy((char*)server->h_addr, (char*)&addr.sin_addr.s_addr, server->h_length);
     if (connect(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
     {
