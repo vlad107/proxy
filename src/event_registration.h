@@ -9,6 +9,11 @@ class event_registration
     epoll_handler *efd;
     int fd;
 public:
+    event_registration& operator=(const event_registration &)= delete;
+    event_registration(const event_registration &) = delete;
+    event_registration(event_registration&&) = delete;
+    event_registration& operator=(event_registration&&) = delete;
+
     event_registration(epoll_handler *efd, int fd, int mask, std::function<void(int, int)> handler);
     ~event_registration();
 };

@@ -37,6 +37,8 @@ void epoll_handler::loop()
     {
         std::cerr << "============================ new iteration ============================" << std::endl;
         int ev_sz;
+        for (auto deleter : deleters) deleter();
+        deleters.clear();
         if ((ev_sz = epoll_wait(efd, evs, MAX_EVENTS, -1)) < 0)
         {
             if (errno = EINTR) continue;
@@ -67,4 +69,9 @@ void epoll_handler::rem_event(int fd)
         throw std::runtime_error("Error in epoll_ctl(EPOLL_CTL_DEL):\n" + std::string(strerror(errno)));
     }
     std::cerr << "descriptor removed successfully" << std::endl;
+}
+
+void epoll_handler::add_deleter(std::function<void ()> func)
+{
+    deleters.push_back(func);
 }

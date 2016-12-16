@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <functional>
 #include <assert.h>
+#include <vector>
 #include <unordered_map>
 #include <unistd.h>
 #include <memory>
@@ -30,6 +31,7 @@ class epoll_handler
 {
     int efd;
     std::unordered_map<int, std::function<void(int, int)>> events;
+    std::vector<std::function<void()>> deleters;
     static const int MAX_EVENTS = 1024;
 public:
     epoll_handler& operator=(epoll_handler const&) = delete;
@@ -42,6 +44,7 @@ public:
 
     void add_event(int sfd, int mask, std::function<void(int, int)> handler);
     void rem_event(int sfd);
+    void add_deleter(std::function<void()>);
     void loop();
 };
 

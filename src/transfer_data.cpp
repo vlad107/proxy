@@ -133,14 +133,34 @@ host_data::host_data(std::string host, epoll_handler *_efd)
     response_header = std::make_unique<http_parser>();
 }
 
-
-bool host_data::empty_in()
+void host_data::activate_request_handler()
 {
-    return buffer_in->empty();
+    request_event = std::make_shared<event_registration>(efd,
+                                                         server_fdout->getd(),
+                                                         EPOLLOUT,
+                                                         [this](int _fd, int _event)
+    {
+        if (_event & EPOLLOUT)
+        {
+            if (write_all(_fd))
+            {
+                efd->add_deleter([this]()
+                {
+                    request_event.reset();
+                });
+            }
+            _event ^= EPOLLOUT;
+        }
+        assert(_event == 0);
+    });
 }
 
 void host_data::add_request(std::string req)
 {
+    if (buffer_in->empty())
+    {
+        activate_request_handler();
+    }
     buffer_in->add_chunk(req);
 }
 
@@ -204,7 +224,7 @@ void host_data::set_response_handler(std::function<void(int)> handler)
 
 void host_data::start()
 {
-    reg = std::make_unique<event_registration>(efd,
+    response_event = std::make_unique<event_registration>(efd,
                                                server_fdin->getd(),
                                                EPOLLIN | EPOLLRDHUP,
                                                [this](int _fd, int _event)
@@ -276,18 +296,23 @@ void transfer_data::data_occured(int fd)
                         result_q.pop();
                         if (response_buffer->empty())
                         {
-                            efd->add_event(client_outfd->getd(), EPOLLOUT, [&](int out_fd, int event)
+                            response_event = std::make_shared<event_registration>(efd,
+                                                                                  client_outfd->getd(),
+                                                                                  EPOLLOUT,
+                                                                                  [&](int _fd, int _event)
                             {
-                                if (event & EPOLLOUT)
+                                if (_event & EPOLLOUT)
                                 {
-                                    std::cerr << "EPOLLOUT on " << out_fd << std::endl;
-                                    if (response_buffer->write_all(out_fd))
+                                    if (response_buffer->write_all(_fd))
                                     {
-                                        efd->rem_event(out_fd);
+                                        efd->add_deleter([&]()
+                                        {
+                                            response_event.reset();
+                                        });
                                     }
-                                    event ^= EPOLLOUT;
+                                    _event ^= EPOLLOUT;
                                 }
-                                assert(event == 0);
+                                assert(_event == 0);
                             });
                         }
                         response_buffer->add_chunk(http_response);
@@ -295,23 +320,7 @@ void transfer_data::data_occured(int fd)
                 });
                 hosts[host]->start();
             }
-            auto &cur_host = hosts[host];
-            if (cur_host->empty_in())
-            {
-                efd->add_event(cur_host->get_out_socket(), EPOLLOUT, [&](int out_fd, int event)
-                {
-                    if (event & EPOLLOUT)
-                    {
-                        if (cur_host->write_all(out_fd))
-                        {
-                            efd->rem_event(cur_host->get_out_socket());
-                        }
-                        event ^= EPOLLOUT;
-                    }
-                    assert(event == 0);
-                });
-            }
-            cur_host->add_request(req);
+            hosts[host]->add_request(req);
             request_header->clear();
         }
     }

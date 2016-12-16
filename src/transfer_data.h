@@ -50,7 +50,9 @@ class host_data
     std::function<void()> disconnect_handler;
     std::function<void(int)> response_handler;
     epoll_handler *efd;
-    std::unique_ptr<event_registration> reg;
+    std::unique_ptr<event_registration> response_event;
+    std::shared_ptr<event_registration> request_event;
+    void activate_request_handler();
 public:
     host_data &operator=(host_data const&) = delete;
     host_data(host_data const&) = delete;
@@ -62,7 +64,6 @@ public:
     bool write_all(int fd);
     void add_response(std::string resp);
     std::string extract_response();
-    bool empty_in();
     int get_out_socket();
     int get_in_socket();
     bool available_response();
@@ -91,7 +92,7 @@ public:
     void make_nonblocking();
     void data_occured(int fd);
 private:
-
+    std::shared_ptr<event_registration> response_event;
     std::queue<std::string> result_q;
     epoll_handler *efd;
     std::unique_ptr<sockfd> client_infd;
