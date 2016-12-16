@@ -10,8 +10,9 @@ class sockfd
 public:
     sockfd &operator=(sockfd const&) = delete;
     sockfd(sockfd const&) = delete;
-    sockfd &operator=(sockfd&&) = delete;
-    sockfd(sockfd&&) = delete;
+    sockfd &operator=(sockfd&&);
+    sockfd(sockfd&&);
+
     sockfd();
     sockfd(int fd);
     ~sockfd();

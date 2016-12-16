@@ -28,11 +28,8 @@ std::string tcp_helper::read_all(int fd)
     return result;
 }
 
-int tcp_helper::open_connection(std::string host)
+int tcp_helper::getportbyhost(std::string host)
 {
-    std::cerr << "--------" << host.size() << "-------" << std::endl;
-    std::cerr << host << std::endl;
-    std::cerr << "----------------" << std::endl;
     int port;
     size_t i = host.find(":");
     if (i != std::string::npos)
@@ -43,6 +40,19 @@ int tcp_helper::open_connection(std::string host)
     {
         port = 80;
     }
+    return port;
+}
+
+void tcp_helper::getaddrbyhost(std::string host, std::string &addr)
+{
+    // TODO: asynchronously with eventfd
+//    std::unique_ptr<struct hostent> t(gethostbyname(host.c_str()));
+    struct hostent *tmp = gethostbyname(host.c_str());
+    addr = std::string(tmp->h_addr, tmp->h_length);
+}
+
+int tcp_helper::open_connection(std::string host_addr, int port)
+{
     int sockfd = ::socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
     {
@@ -52,9 +62,7 @@ int tcp_helper::open_connection(std::string host)
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    struct hostent *server = gethostbyname(host.c_str()); // TODO: asynchronously with epollfd
-    std::cerr << "ip for " << host << " is " << server->h_name << std::endl;
-    bcopy((char*)server->h_addr, (char*)&addr.sin_addr.s_addr, server->h_length);
+    bcopy((char*)host_addr.c_str(), (char*)&addr.sin_addr.s_addr, host_addr.size());
     if (connect(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
     {
         throw std::runtime_error("error in connect():\n" + std::string(strerror(errno)));

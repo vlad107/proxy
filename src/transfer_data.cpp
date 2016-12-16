@@ -113,30 +113,37 @@ bool http_buffer::write_all(int fd)
     return data.empty();
 }
 
-host_data::host_data(std::string host, epoll_handler *_efd,
+host_data::host_data(epoll_handler *_efd,
                      std::function<void()> _disconnect_handler,
                      std::function<void(int)> _response_handler)
 {
+    _started = false;
     disconnect_handler = _disconnect_handler;
     response_handler = _response_handler;
     efd = _efd;
     std::cerr << "opening connection" << std::endl;
-    server_fdout = std::make_unique<sockfd>(tcp_helper::open_connection(host));
-    tcp_helper::make_nonblocking(server_fdout->getd());
-    int tmpfd = dup(server_fdout->getd());
+    buffer_in = std::make_unique<http_buffer>();
+    buffer_out = std::make_unique<http_buffer>();
+    response_header = std::make_unique<http_parser>();
+}
+
+void host_data::start_on_socket(sockfd host_socket)
+{
+    assert(!_started);
+    _started = true;
+    server_fdout = std::move(host_socket);
+    std::cerr << "host opened on " << server_fdout.getd() << " descriptor" << std::endl;
+    tcp_helper::make_nonblocking(server_fdout.getd());
+    int tmpfd = dup(server_fdout.getd());
     if (tmpfd < 0)
     {
         throw std::runtime_error("error in dup()");
     }
-    server_fdin = std::make_unique<sockfd>(tmpfd);
-    tcp_helper::make_nonblocking(server_fdin->getd());
-    std::cerr << "descriptor for writing to host " << host << " is " << server_fdout->getd() << std::endl;
-    std::cerr << "descriptor for reading from host " << host << " is " << server_fdin->getd() << std::endl;
-    buffer_in = std::make_unique<http_buffer>();
-    buffer_out = std::make_unique<http_buffer>();
-    response_header = std::make_unique<http_parser>();
+    server_fdin = std::move(sockfd(tmpfd));
+    std::cerr << "second descriptor for host is " << server_fdin.getd() << std::endl;
+    tcp_helper::make_nonblocking(server_fdin.getd());
     response_event = std::make_unique<event_registration>(efd,
-                                               server_fdin->getd(),
+                                               server_fdin.getd(),
                                                EPOLLIN | EPOLLRDHUP,
                                                [this](int _fd, int _event)
     {
@@ -152,21 +159,27 @@ host_data::host_data(std::string host, epoll_handler *_efd,
         }
         assert(_event == 0);
     });
+    if (!buffer_in->empty())
+    {
+        activate_request_handler();
+    }
 }
 
 void host_data::activate_request_handler()
 {
+    std::cerr << "activating request_handler" << std::endl;
     request_event = std::make_shared<event_registration>(efd,
-                                                         server_fdout->getd(),
+                                                         server_fdout.getd(),
                                                          EPOLLOUT,
                                                          [this](int _fd, int _event)
     {
         if (_event & EPOLLOUT)
         {
-            if (write_all(_fd))
+            if (buffer_in->write_all(_fd))
             {
                 efd->add_deleter([this]()
                 {
+                    std::cerr << "deactivating request_handler" << std::endl;
                     request_event.reset();
                 });
             }
@@ -178,26 +191,11 @@ void host_data::activate_request_handler()
 
 void host_data::add_request(std::string req)
 {
-    if (buffer_in->empty())
+    if ((_started) && (buffer_in->empty()))
     {
         activate_request_handler();
     }
     buffer_in->add_chunk(req);
-}
-
-bool host_data::write_all(int fd)
-{
-    return buffer_in->write_all(fd);
-}
-
-int host_data::get_out_socket()
-{
-    return server_fdout->getd();
-}
-
-int host_data::get_in_socket()
-{
-    return server_fdin->getd();
 }
 
 bool host_data::available_response()
@@ -261,18 +259,19 @@ void transfer_data::data_occured(int fd)
             request_header->parse_header(client_buffer->get_header());
         }
         int body_len = request_header->get_content_len();
+        std::string host = request_header->get_host();
         int available_len = client_buffer->size() - client_buffer->get_header_end();
         if (available_len >= body_len)
         {
+            request_header->clear();
+
             std::cerr << "full http-request available" << std::endl;
             std::string req = client_buffer->extract_front_http(body_len);
-            std::string host = request_header->get_host();
             host = tcp_helper::normalize(host);
-            result_q.push(host);    // queue for response to client
+            result_q.push(host);
             if (hosts.count(host) == 0)
             {
                 hosts[host] = std::make_unique<host_data>(
-                            host,
                             efd,
                             [this, host]()
                 {
@@ -310,14 +309,20 @@ void transfer_data::data_occured(int fd)
                         response_buffer->add_chunk(http_response);
                     }
                 });
+
+                hosts[host]->add_request(req);
+                efd->add_background_task([this, host]()
+                {
+                    int port = tcp_helper::getportbyhost(host);
+                    std::string host_addr;
+                    tcp_helper::getaddrbyhost(host, host_addr);
+                    sockfd host_socket(tcp_helper::open_connection(host_addr, port));
+                    hosts[host]->start_on_socket(std::move(host_socket));
+                });
+            } else
+            {
+                hosts[host]->add_request(req);
             }
-            hosts[host]->add_request(req);
-            request_header->clear();
         }
     }
-}
-
-int transfer_data::get_descriptor()
-{
-    return client_infd->getd();
 }

@@ -45,28 +45,27 @@ class host_data
     std::unique_ptr<http_buffer> buffer_in;
     std::unique_ptr<http_buffer> buffer_out;
     std::unique_ptr<http_parser> response_header;
-    std::unique_ptr<sockfd> server_fdin;
-    std::unique_ptr<sockfd> server_fdout;
+    sockfd server_fdin;
+    sockfd server_fdout;
     std::function<void()> disconnect_handler;
     std::function<void(int)> response_handler;
     epoll_handler *efd;
     std::unique_ptr<event_registration> response_event;
     std::shared_ptr<event_registration> request_event;
     void activate_request_handler();
+    bool _started;
 public:
     host_data &operator=(host_data const&) = delete;
     host_data(host_data const&) = delete;
     host_data &operator=(host_data&&) = delete;
     host_data(host_data&&) = delete;
 
-    host_data(std::string host, epoll_handler *_efd, std::function<void()>, std::function<void(int)>);
+    host_data(epoll_handler *_efd, std::function<void()>, std::function<void(int)>);
     void add_request(std::string req);
-    bool write_all(int fd);
     void add_response(std::string resp);
     std::string extract_response();
-    int get_out_socket();
-    int get_in_socket();
     bool available_response();
+    void start_on_socket(sockfd host_socket);
 
     void debug_response()
     {
@@ -83,10 +82,6 @@ public:
     transfer_data(transfer_data&&) = delete;
 
     transfer_data(int fd, epoll_handler *efd);
-    void read_all();
-    void check_for_requests();
-    int get_descriptor();
-    void make_nonblocking();
     void data_occured(int fd);
 private:
     std::shared_ptr<event_registration> response_event;

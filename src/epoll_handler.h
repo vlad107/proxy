@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <memory>
 
+#include "background_executor.h"
+
 class my_epoll_data
 {
     int fd;
@@ -32,6 +34,7 @@ class epoll_handler
     int efd;
     std::unordered_map<int, std::function<void(int, int)>> events;
     std::vector<std::function<void()>> deleters;
+    background_executor background;
     static const int MAX_EVENTS = 1024;
 public:
     epoll_handler& operator=(epoll_handler const&) = delete;
@@ -46,6 +49,7 @@ public:
     void rem_event(int sfd);
     void add_deleter(std::function<void()>);
     void loop();
+    void add_background_task(std::function<void()> task);
 };
 
 #endif // EPOLL_HANDLER_H
