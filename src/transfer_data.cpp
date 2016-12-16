@@ -113,8 +113,12 @@ bool http_buffer::write_all(int fd)
     return data.empty();
 }
 
-host_data::host_data(std::string host, epoll_handler *_efd)
+host_data::host_data(std::string host, epoll_handler *_efd,
+                     std::function<void()> _disconnect_handler,
+                     std::function<void(int)> _response_handler)
 {
+    disconnect_handler = _disconnect_handler;
+    response_handler = _response_handler;
     efd = _efd;
     std::cerr << "opening connection" << std::endl;
     server_fdout = std::make_unique<sockfd>(tcp_helper::open_connection(host));
@@ -131,6 +135,23 @@ host_data::host_data(std::string host, epoll_handler *_efd)
     buffer_in = std::make_unique<http_buffer>();
     buffer_out = std::make_unique<http_buffer>();
     response_header = std::make_unique<http_parser>();
+    response_event = std::make_unique<event_registration>(efd,
+                                               server_fdin->getd(),
+                                               EPOLLIN | EPOLLRDHUP,
+                                               [this](int _fd, int _event)
+    {
+        if (_event & EPOLLIN)
+        {
+            response_handler(_fd);
+            _event ^= EPOLLIN;
+        }
+        if (_event & EPOLLRDHUP)
+        {
+            efd->add_deleter(disconnect_handler);
+            _event ^= EPOLLRDHUP;
+        }
+        assert(_event == 0);
+    });
 }
 
 void host_data::activate_request_handler()
@@ -212,37 +233,6 @@ void host_data::add_response(std::string resp)
     std::cerr << "response was added" << std::endl;
 }
 
-void host_data::set_disconnect_handler(std::function<void()> handler)
-{
-    disconnect_handler = handler;
-}
-
-void host_data::set_response_handler(std::function<void(int)> handler)
-{
-    response_handler = handler;
-}
-
-void host_data::start()
-{
-    response_event = std::make_unique<event_registration>(efd,
-                                               server_fdin->getd(),
-                                               EPOLLIN | EPOLLRDHUP,
-                                               [this](int _fd, int _event)
-    {
-        if (_event & EPOLLIN)
-        {
-            response_handler(_fd);
-            _event ^= EPOLLIN;
-        }
-        if (_event & EPOLLRDHUP)
-        {
-            disconnect_handler();
-            _event ^= EPOLLRDHUP;
-        }
-        assert(_event == 0);
-    });
-}
-
 transfer_data::transfer_data(int _fd, epoll_handler *_efd)
 {
     client_infd = std::make_unique<sockfd>(_fd);
@@ -281,12 +271,14 @@ void transfer_data::data_occured(int fd)
             result_q.push(host);    // queue for response to client
             if (hosts.count(host) == 0)
             {
-                hosts[host] = std::make_unique<host_data>(host, efd);
-                hosts[host]->set_disconnect_handler([this, host]()
+                hosts[host] = std::make_unique<host_data>(
+                            host,
+                            efd,
+                            [this, host]()
                 {
                     hosts.erase(host);
-                });
-                hosts[host]->set_response_handler([&, host, this](int ffd)
+                },
+                            [this, host](int ffd)
                 {
                     std::string response = tcp_helper::read_all(ffd);
                     hosts[host]->add_response(response);
@@ -318,7 +310,6 @@ void transfer_data::data_occured(int fd)
                         response_buffer->add_chunk(http_response);
                     }
                 });
-                hosts[host]->start();
             }
             hosts[host]->add_request(req);
             request_header->clear();

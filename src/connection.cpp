@@ -24,7 +24,7 @@ void connection::start()
         }
         if (_event & EPOLLRDHUP)
         {
-            disconnect_handler();
+            efd->add_deleter(disconnect_handler);
             _event ^= EPOLLRDHUP;
         }
         assert(_event == 0);

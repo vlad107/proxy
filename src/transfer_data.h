@@ -59,7 +59,7 @@ public:
     host_data &operator=(host_data&&) = delete;
     host_data(host_data&&) = delete;
 
-    host_data(std::string host, epoll_handler *_efd);
+    host_data(std::string host, epoll_handler *_efd, std::function<void()>, std::function<void(int)>);
     void add_request(std::string req);
     bool write_all(int fd);
     void add_response(std::string resp);
@@ -67,9 +67,6 @@ public:
     int get_out_socket();
     int get_in_socket();
     bool available_response();
-    void set_disconnect_handler(std::function<void()>);
-    void set_response_handler(std::function<void(int)>);
-    void start();
 
     void debug_response()
     {
