@@ -311,13 +311,15 @@ void transfer_data::data_occured(int fd)
                 });
 
                 hosts[host]->add_request(req);
-                efd->add_background_task([this, host]()
+                auto &iter = hosts[host];
+                efd->add_background_task([this, host, &iter]()
                 {
                     int port = tcp_helper::getportbyhost(host);
                     std::string host_addr;
                     tcp_helper::getaddrbyhost(host, host_addr);
                     sockfd host_socket(tcp_helper::open_connection(host_addr, port));
-                    hosts[host]->start_on_socket(std::move(host_socket));
+                    // start_on_socket should block iter
+                    iter->start_on_socket(std::move(host_socket));
                 });
             } else
             {

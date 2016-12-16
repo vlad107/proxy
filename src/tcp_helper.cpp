@@ -45,8 +45,6 @@ int tcp_helper::getportbyhost(std::string host)
 
 void tcp_helper::getaddrbyhost(std::string host, std::string &addr)
 {
-    // TODO: asynchronously with eventfd
-//    std::unique_ptr<struct hostent> t(gethostbyname(host.c_str()));
     struct hostent *tmp = gethostbyname(host.c_str());
     addr = std::string(tmp->h_addr, tmp->h_length);
 }
