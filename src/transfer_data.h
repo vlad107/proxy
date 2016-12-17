@@ -26,10 +26,10 @@ class http_buffer
     void initialize();
 
     void update_char(int idx);
-    std::string substr(int from, int to);
+    std::deque<char> substr(int from, int to);
 public:
     http_buffer();
-    void add_chunk(std::string);
+    void add_chunk(std::deque<char>);
     bool header_available();
     int size();
     int get_header_end();
@@ -37,7 +37,7 @@ public:
     void debug_write();
     bool write_all(int fd);
     std::string get_header();
-    std::string extract_front_http(int body_len);
+    std::deque<char> extract_front_http(int body_len);
 };
 
 class host_data
@@ -61,9 +61,9 @@ public:
     host_data(host_data&&) = delete;
 
     host_data(epoll_handler *_efd, std::function<void()>, std::function<void(int)>);
-    void add_request(std::string req);
-    void add_response(std::string resp);
-    std::string extract_response();
+    void add_request(std::deque<char> req);
+    void add_response(std::deque<char> resp);
+    std::deque<char> extract_response();
     bool available_response();
     void start_on_socket(sockfd host_socket);
 

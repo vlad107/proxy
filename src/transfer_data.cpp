@@ -22,9 +22,9 @@ void http_buffer::initialize()
     }
 }
 
-void http_buffer::add_chunk(std::string s)
+void http_buffer::add_chunk(std::deque<char> s)
 {
-//    std::cerr << "adding:\n=====\n" << s << "\n====\nto buffer" << std::endl;
+    std::cerr << "adding:\n=====\n" << s.size() << "\n====\nto buffer" << std::endl;
     data.insert(data.end(), s.begin(), s.end());
     for (size_t i = data.size() - s.size(); i < data.size(); i++)
     {
@@ -56,19 +56,19 @@ int http_buffer::get_header_end()
     return header_end;
 }
 
-std::string http_buffer::substr(int from, int to)
+std::deque<char> http_buffer::substr(int from, int to)
 {
     if (!((0 <= from) && (from <= to) && (to <= data.size())))
     {
         throw std::out_of_range("error in buffer::substr(from, to)");
     }
-    std::string result(data.begin() + from, data.begin() + to);
+    std::deque<char> result(data.begin() + from, data.begin() + to);
     return result;
 }
 
-std::string http_buffer::extract_front_http(int body_len)
+std::deque<char> http_buffer::extract_front_http(int body_len)
 {
-    std::string result = substr(0, header_end + 1 + body_len);
+    std::deque<char> result = substr(0, header_end + 1 + body_len);
     data.erase(data.begin(), data.begin() + header_end + 1 + body_len);
     initialize();
     return result;
@@ -81,7 +81,7 @@ int http_buffer::size()
 
 std::string http_buffer::get_header()
 {
-    return substr(0, header_end + 1);
+    return std::string(data.begin(), data.begin() + header_end + 1);
 }
 
 bool http_buffer::empty()
@@ -191,7 +191,7 @@ void host_data::activate_request_handler()
     });
 }
 
-void host_data::add_request(std::string req)
+void host_data::add_request(std::deque<char> req)
 {
     if ((_started) && (buffer_in->empty()))
     {
@@ -218,15 +218,15 @@ bool host_data::available_response()
     return false;
 }
 
-std::string host_data::extract_response()
+std::deque<char> host_data::extract_response()
 {
     int body_len = response_header->get_content_len();
-    std::string result = buffer_out->extract_front_http(body_len);
+    std::deque<char> result = buffer_out->extract_front_http(body_len);
     response_header->clear();
     return result;
 }
 
-void host_data::add_response(std::string resp)
+void host_data::add_response(std::deque<char> resp)
 {
     std::cerr << "adding response" << std::endl;
     buffer_out->add_chunk(resp);
@@ -251,6 +251,7 @@ transfer_data::transfer_data(int _fd, epoll_handler *_efd)
 
 void transfer_data::data_occured(int fd)
 {
+    std::cerr << "reading request now" << std::endl;
     client_buffer->add_chunk(tcp_helper::read_all(fd));
 //    client_buffer->debug_write();
     while (client_buffer->header_available())
@@ -268,7 +269,7 @@ void transfer_data::data_occured(int fd)
             request_header->clear();
 
             std::cerr << "full http-request available" << std::endl;
-            std::string req = client_buffer->extract_front_http(body_len);
+            std::deque<char> req = client_buffer->extract_front_http(body_len);
             host = tcp_helper::normalize(host);
             result_q.push(host);
             if (hosts.count(host) == 0)
@@ -281,11 +282,12 @@ void transfer_data::data_occured(int fd)
                 },
                             [this, host](int ffd)
                 {
-                    std::string response = tcp_helper::read_all(ffd);
+                    std::cerr << "reading response now" << std::endl;
+                    std::deque<char> response = tcp_helper::read_all(ffd);
                     hosts[host]->add_response(response);
                     while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
                     {
-                        std::string http_response = hosts[result_q.front()]->extract_response();
+                        std::deque<char> http_response = hosts[result_q.front()]->extract_response();
                         result_q.pop();
                         if (response_buffer->empty())
                         {

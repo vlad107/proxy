@@ -11,6 +11,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <iostream>
+#include <deque>
 #include <memory>
 
 namespace tcp_helper
@@ -18,7 +19,7 @@ namespace tcp_helper
     int getportbyhost(std::string);
     void getaddrbyhost(std::string, std::string &server);
     void make_nonblocking(int fd);
-    std::string read_all(int fd);
+    std::deque<char> read_all(int fd);
     int open_connection(std::string, int port);
     std::string normalize(std::string host);
 }

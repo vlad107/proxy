@@ -14,17 +14,18 @@ void tcp_helper::make_nonblocking(int fd)
     }
 }
 
-std::string tcp_helper::read_all(int fd)
+std::deque<char> tcp_helper::read_all(int fd)
 {
     const int BUFF_SIZE = 1024;
     char tmp[BUFF_SIZE];
     int _read;
-    std::string result;
+    std::deque<char> result;
     std::cerr << "start reading" << std::endl;
     while ((_read = ::read(fd, tmp, BUFF_SIZE)) > 0)
     {
         tmp[_read] = 0;
-        result += tmp;
+        result.insert(result.end(), tmp, tmp + _read);
+//        result += tmp;
     }
     std::cerr << "finish reading" << std::endl;
     if (_read < 0)
