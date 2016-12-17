@@ -9,10 +9,12 @@
 #include <condition_variable>
 #include <memory.h>
 
+#include "smart_thread.h"
+
 class background_executor
 {
     static const int THREADS_AMOUNT = 4;
-    std::vector<std::thread> threads;
+    std::vector<std::unique_ptr<smart_thread>> threads;
     std::mutex _mutex;
     std::queue<std::function<void()>> tasks;
     std::condition_variable cond;

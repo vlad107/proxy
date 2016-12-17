@@ -98,15 +98,9 @@ bool http_buffer::write_all(int fd)
         size_t len = std::min(BUFF_SIZE, data.size());
         char tmp[BUFF_SIZE];
         for (int j = 0; j < len; j++) tmp[j] = data[j];
-//        std::string cur_buff(data.begin(), data.begin() + len);
         int _write = ::send(fd, tmp, len, MSG_NOSIGNAL);
-//        std::cerr << len << " of " << data.size() << " was written to descriptor " << fd << std::endl;
         if (_write > 0)
-        {
-//            std::cerr << "======" << std::endl;
-//            std::cerr << cur_buff.substr(0, _write);
-//            std::cerr << "======" << std::endl;
-            data.erase(data.begin(), data.begin() + _write);
+        {            data.erase(data.begin(), data.begin() + _write);
         } else if (_write < 0)
         {
             std::cerr << "error in write():\n";
