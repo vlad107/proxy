@@ -24,7 +24,7 @@ void http_buffer::initialize()
 
 void http_buffer::add_chunk(std::string s)
 {
-    std::cerr << "adding:\n=====\n" << s << "\n====\nto buffer" << std::endl;
+//    std::cerr << "adding:\n=====\n" << s << "\n====\nto buffer" << std::endl;
     data.insert(data.end(), s.begin(), s.end());
     for (size_t i = data.size() - s.size(); i < data.size(); i++)
     {
@@ -97,12 +97,12 @@ bool http_buffer::write_all(int fd)
         size_t len = std::min(BUFF_SIZE, data.size());
         std::string cur_buff(data.begin(), data.begin() + len);
         int _write = ::write(fd, cur_buff.c_str(), len);
-        std::cerr << len << " of " << data.size() << " was written to descriptor " << fd << std::endl;
+//        std::cerr << len << " of " << data.size() << " was written to descriptor " << fd << std::endl;
         if (_write > 0)
         {
-            std::cerr << "======" << std::endl;
-            std::cerr << cur_buff.substr(0, _write);
-            std::cerr << "======" << std::endl;
+//            std::cerr << "======" << std::endl;
+//            std::cerr << cur_buff.substr(0, _write);
+//            std::cerr << "======" << std::endl;
             data.erase(data.begin(), data.begin() + _write);
         } else if (_write < 0)
         {
@@ -250,7 +250,7 @@ transfer_data::transfer_data(int _fd, epoll_handler *_efd)
 void transfer_data::data_occured(int fd)
 {
     client_buffer->add_chunk(tcp_helper::read_all(fd));
-    client_buffer->debug_write();
+//    client_buffer->debug_write();
     while (client_buffer->header_available())
     {
         std::cerr << "request_header available" << std::endl;
@@ -314,10 +314,14 @@ void transfer_data::data_occured(int fd)
                 auto &iter = hosts[host];
                 efd->add_background_task([this, host, &iter]()
                 {
+                    std::cerr << "host: " << host << std::endl;
                     int port = tcp_helper::getportbyhost(host);
+                    std::cerr << "   port: " << port << std::endl;
                     std::string host_addr;
                     tcp_helper::getaddrbyhost(host, host_addr);
+                    std::cerr << "   addr: " << host_addr << std::endl;
                     sockfd host_socket(tcp_helper::open_connection(host_addr, port));
+                    std::cerr << "   connection opened" << std::endl;
                     // start_on_socket should block iter
                     iter->start_on_socket(std::move(host_socket));
                 });

@@ -4,17 +4,21 @@ background_executor::background_executor()
 {
     for (int i = 0; i < THREADS_AMOUNT; i++)
     {
-        threads.push_back(std::thread([this]()
+        threads.push_back(std::thread([this, i]()
         {
-            std::unique_lock<std::mutex> lock(_mutex);
-            while (tasks.empty())
+            while (1)
             {
-                cond.wait(lock);
+                std::unique_lock<std::mutex> lock(_mutex);
+                while (tasks.empty())
+                {
+                    cond.wait(lock);
+                }
+                auto handler = tasks.front();
+                tasks.pop();
+                lock.unlock();
+                std::cerr << "executing at thread " << i << std::endl;
+                handler();
             }
-            auto handler = tasks.front();
-            tasks.pop();
-            lock.unlock();
-            handler();
         }));
     }
 }
