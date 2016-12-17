@@ -23,10 +23,12 @@ void epoll_handler::add_event(int fd, int mask, std::function<int(int, int)> han
     epoll_event ev{};
     ev.data.fd = fd;
     ev.events = mask;
-    events[fd] = handler; // TODO
-    if (epoll_ctl(efd, EPOLL_CTL_ADD, fd, &ev) < 0) // TODO: i created `ev` on stack and pass it as a parameter, ok?
+    if (epoll_ctl(efd, EPOLL_CTL_ADD, fd, &ev) < 0)
     {
         throw std::runtime_error("error in epoll_ctl(EPOLL_CTL_ADD)\n" + std::string(strerror(errno)));
+    } else
+    {
+        events[fd] = handler;
     }
     std::cerr << "descriptor was added" << std::endl;
 }

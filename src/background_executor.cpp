@@ -29,8 +29,9 @@ background_executor::background_executor()
                         std::cerr << "executing at thread " << i << std::endl;
                         ++num_execs[i];
                         handler();
-                    } catch (...) // WAT?
+                    } catch (const std::exception &e)
                     {
+                        std::cerr << e.what() << std::endl;
                     }
                 }
         }));

@@ -13,7 +13,8 @@ sockfd::~sockfd()
     std::cerr << "closing socket " << fd << std::endl;
     if (fd != -1)
     {
-        assert(close(fd) == 0); // TODO
+        int err = close(fd);
+        assert(err == 0);
     }
 }
 
@@ -23,11 +24,9 @@ int sockfd::getd()
 }
 
 sockfd::sockfd(sockfd &&other)
-// TODO: swap-trick should be here, but fail while passing as a parameter
 {
     fd = other.fd;
     other.fd = -1;
-//    std::swap(fd, other.fd);
 }
 
 sockfd &sockfd::operator=(sockfd &&other) // TODO: swap-trick should be here
