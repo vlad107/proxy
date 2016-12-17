@@ -22,6 +22,7 @@ namespace tcp_helper
     std::deque<char> read_all(int fd);
     int open_connection(std::string, int port);
     std::string normalize(std::string host);
+//    void prevent_signal(int fd);
 }
 
 #endif // TCP_HELPER_H

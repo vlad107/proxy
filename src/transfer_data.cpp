@@ -96,8 +96,10 @@ bool http_buffer::write_all(int fd)
     {
         const size_t BUFF_SIZE = 1024;
         size_t len = std::min(BUFF_SIZE, data.size());
-        std::string cur_buff(data.begin(), data.begin() + len);
-        int _write = ::write(fd, cur_buff.c_str(), len);
+        char tmp[BUFF_SIZE];
+        for (int j = 0; j < len; j++) tmp[j] = data[j];
+//        std::string cur_buff(data.begin(), data.begin() + len);
+        int _write = ::send(fd, tmp, len, MSG_NOSIGNAL);
 //        std::cerr << len << " of " << data.size() << " was written to descriptor " << fd << std::endl;
         if (_write > 0)
         {
