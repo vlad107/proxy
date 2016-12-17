@@ -1,5 +1,7 @@
 #include "epoll_handler.h"
 
+volatile sig_atomic_t term = 0;
+
 epoll_handler::epoll_handler()
 {
     if ((efd = epoll_create1(0)) < 0)
@@ -32,7 +34,7 @@ void epoll_handler::add_event(int fd, int mask, std::function<void(int, int)> ha
 void epoll_handler::loop()
 {
     struct epoll_event evs[MAX_EVENTS];
-    while (true)
+    while (!term)
     {
         std::cerr << "============================ new iteration ============================" << std::endl;
         int ev_sz;
@@ -43,7 +45,7 @@ void epoll_handler::loop()
             if (errno = EINTR) continue;
             throw std::runtime_error("error in epoll_wait()");
         }
-        for (int i = 0; i < ev_sz; i++)
+        for (int i = 0; (i < ev_sz) && (!term); i++)
         {
             if (evs[i].events & (EPOLLERR | EPOLLHUP))
             {
@@ -78,4 +80,9 @@ void epoll_handler::add_deleter(std::function<void ()> func)
 void epoll_handler::add_background_task(std::function<void()> handler)
 {
     background.add_task(handler);
+}
+
+void epoll_handler::print_num_execs()
+{
+    background.print_num_execs();
 }

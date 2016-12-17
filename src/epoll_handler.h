@@ -9,9 +9,12 @@
 #include <vector>
 #include <unordered_map>
 #include <unistd.h>
+#include <csignal>
 #include <memory>
 
 #include "background_executor.h"
+
+extern volatile sig_atomic_t term;
 
 class my_epoll_data
 {
@@ -50,6 +53,7 @@ public:
     void add_deleter(std::function<void()>);
     void loop();
     void add_background_task(std::function<void()> task);
+    void print_num_execs();
 };
 
 #endif // EPOLL_HANDLER_H

@@ -8,6 +8,8 @@
 #include <memory>
 #include <set>
 
+extern volatile sig_atomic_t term;
+
 class proxy_server
 {
     epoll_handler *efd;
