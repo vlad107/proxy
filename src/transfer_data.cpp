@@ -91,6 +91,7 @@ bool http_buffer::empty()
 
 bool http_buffer::write_all(int fd)
 {
+    std::cerr << "start writing" << std::endl;
     while (true)
     {
         const size_t BUFF_SIZE = 1024;
@@ -110,6 +111,7 @@ bool http_buffer::write_all(int fd)
             std::cerr << strerror(errno) << std::endl;
         } else break;
     }
+    std::cerr << "finish writing" << std::endl;
     return data.empty();
 }
 
@@ -157,7 +159,7 @@ void host_data::start_on_socket(sockfd host_socket)
             efd->add_deleter(disconnect_handler);
             _event ^= EPOLLRDHUP;
         }
-        assert(_event == 0);
+        return _event;
     });
     if (!buffer_in->empty())
     {
@@ -185,7 +187,7 @@ void host_data::activate_request_handler()
             }
             _event ^= EPOLLOUT;
         }
-        assert(_event == 0);
+        return _event;
     });
 }
 
@@ -303,7 +305,7 @@ void transfer_data::data_occured(int fd)
                                     }
                                     _event ^= EPOLLOUT;
                                 }
-                                assert(_event == 0);
+                                return _event;
                             });
                         }
                         response_buffer->add_chunk(http_response);
@@ -321,8 +323,6 @@ void transfer_data::data_occured(int fd)
                     tcp_helper::getaddrbyhost(host, host_addr);
                     std::cerr << "   addr: " << host_addr << std::endl;
                     sockfd host_socket(tcp_helper::open_connection(host_addr, port));
-                    std::cerr << "   connection opened" << std::endl;
-                    // start_on_socket should block iter
                     iter->start_on_socket(std::move(host_socket));
                 });
             } else

@@ -20,10 +20,17 @@ std::string tcp_helper::read_all(int fd)
     char tmp[BUFF_SIZE];
     int _read;
     std::string result;
+    std::cerr << "start reading" << std::endl;
     while ((_read = ::read(fd, tmp, BUFF_SIZE)) > 0)
     {
         tmp[_read] = 0;
         result += tmp;
+    }
+    std::cerr << "finish reading" << std::endl;
+    if (_read < 0)
+    {
+        std::cerr << "error in read():" << std::endl;
+        std::cerr << std::string(strerror(errno)) << std::endl;
     }
     return result;
 }

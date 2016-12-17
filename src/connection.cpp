@@ -27,6 +27,6 @@ void connection::start()
             efd->add_deleter(disconnect_handler);
             _event ^= EPOLLRDHUP;
         }
-        assert(_event == 0);
+        return _event;
     });
 }

@@ -4,6 +4,7 @@
 #include "transfer_data.h"
 #include "event_registration.h"
 
+
 class connection
 {
     std::function<void()> disconnect_handler;

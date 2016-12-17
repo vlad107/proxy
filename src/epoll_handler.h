@@ -35,7 +35,7 @@ public:
 class epoll_handler
 {
     int efd;
-    std::unordered_map<int, std::function<void(int, int)>> events;
+    std::unordered_map<int, std::function<int(int, int)>> events;
     std::vector<std::function<void()>> deleters;
     background_executor background;
     static const int MAX_EVENTS = 1024;
@@ -48,7 +48,7 @@ public:
     epoll_handler();
     ~epoll_handler();
 
-    void add_event(int sfd, int mask, std::function<void(int, int)> handler);
+    void add_event(int sfd, int mask, std::function<int(int, int)> handler);
     void rem_event(int sfd);
     void add_deleter(std::function<void()>);
     void loop();

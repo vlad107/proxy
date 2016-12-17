@@ -1,0 +1,18 @@
+HTTP/1.0 302 Moved Temporarily
+Cache-Control: private
+Content-Type: text/html; charset=UTF-8
+Location: http://www.google.ru/?gfe_rd=cr&ei=xAhVWLXCEo7D7gSi8Y6gDQ
+Content-Length: 258
+Date: Sat, 17 Dec 2016 09:43:32 GMT
+X-Cache: MISS from wlan.ifmo.ru
+X-Cache-Lookup: MISS from wlan.ifmo.ru:3128
+Via: 1.0 wlan.ifmo.ru (squid/3.1.23)
+Connection: keep-alive
+
+<HTML><HEAD><meta http-equiv="content-type" content="text/html;charset=utf-8">
+<TITLE>302 Moved</TITLE></HEAD><BODY>
+<H1>302 Moved</H1>
+The document has moved
+<A HREF="http://www.google.ru/?gfe_rd=cr&amp;ei=xAhVWLXCEo7D7gSi8Y6gDQ">here</A>.
+</BODY></HTML>
+

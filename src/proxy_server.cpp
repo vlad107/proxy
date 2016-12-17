@@ -20,7 +20,7 @@ proxy_server::proxy_server(epoll_handler *efd, int port)
             (*ptr)->start();
             event ^= EPOLLIN;
         }
-        assert(event == 0);
+        return event;
     };
     reg = std::make_unique<event_registration>(efd,
                                                sfd->get_socket(),
