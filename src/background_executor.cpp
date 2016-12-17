@@ -40,7 +40,7 @@ background_executor::background_executor()
     {
         alive = false;
         cond.notify_all();
-        for (auto &thread : theads) thead.join();
+        for (auto &thread : threads) thread.join();
         throw;
     }
 }

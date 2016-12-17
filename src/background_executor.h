@@ -17,7 +17,7 @@ class background_executor
     std::queue<std::function<void()>> tasks;
     std::condition_variable cond;
     bool alive;
-    int num_execs[THREADS_AMOUNT];
+    int num_execs[THREADS_AMOUNT]; // std::array
 public:
     background_executor();
     ~background_executor();
