@@ -1,10 +1,10 @@
 import socket
 
 TCP_IP = '127.0.0.1'
-TCP_PORT = 7777
+TCP_PORT = 5555
 BUFFER_SIZE = 1024
 #MESSAGE = "GET /class/public/pages/sykes_webdesign/05_simple.html HTTP/1.1\r\nHost: csb.stanford.edu\r\n\r\n"
-MESSAGE = "GET / HTTP/1.1\r\nHost: ya.ru\r\n\r\n"
+MESSAGE = "GET / HTTP/1.1\r\nHost: google.com\r\n\r\n"
 all_data = []
 for num in range(100):
 	print "connection #", num

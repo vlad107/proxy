@@ -11,9 +11,9 @@ sockfd::sockfd(int fd) : fd(fd)
 sockfd::~sockfd()
 {
     std::cerr << "closing socket " << fd << std::endl;
-    if (fd > 0)
+    if (fd != -1)
     {
-        assert(close(fd) == 0);
+        assert(close(fd) == 0); // TODO
     }
 }
 

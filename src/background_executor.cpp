@@ -1,9 +1,11 @@
 #include "background_executor.h"
 
 background_executor::background_executor()
+    : alive(true)
+    , num_execs()
 {
-    alive = true;
-    memset(num_execs, 0, sizeof(num_execs));
+    try
+    {
     for (int i = 0; i < THREADS_AMOUNT; i++)
     {
         threads.push_back(std::thread([this, i]()
@@ -13,7 +15,7 @@ background_executor::background_executor()
                 while (alive)
                 {
                     std::unique_lock<std::mutex> lock(_mutex);
-                    while (tasks.empty())
+                    while (tasks.empty()) // todo: cond.wait(..., ...)
                     {
                         cond.wait(lock);
                         if (!alive)
@@ -28,11 +30,18 @@ background_executor::background_executor()
                     ++num_execs[i];
                     handler();
                 }
-            } catch (...)
+            } catch (...) // WAT?
             {
 
             }
         }));
+    }
+    } catch (...)
+    {
+        alive = false;
+        cond.notify_all();
+        for (auto &thread : theads) thead.join();
+        throw;
     }
 }
 
