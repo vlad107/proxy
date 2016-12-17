@@ -20,17 +20,10 @@ proxy_server::proxy_server(epoll_handler *efd, int port)
             (*ptr)->start();
             event ^= EPOLLIN;
         }
-        if (event & EPOLLRDHUP)
-        {
-            std::cerr << "server on " << fd << " disconnected" << std::endl;
-            std::cerr << "so, what should I do here?" << std::endl;
-            // TODO: something else should be here
-            event ^= EPOLLRDHUP;
-        }
         assert(event == 0);
     };
     reg = std::make_unique<event_registration>(efd,
                                                sfd->get_socket(),
-                                               EPOLLIN | EPOLLRDHUP,
+                                               EPOLLIN,
                                                accept_handler);
 }

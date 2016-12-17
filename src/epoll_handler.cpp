@@ -24,7 +24,7 @@ void epoll_handler::add_event(int fd, int mask, std::function<void(int, int)> ha
     ev.data.fd = fd;
     ev.events = mask;
     events[fd] = handler;
-    if (epoll_ctl(efd, EPOLL_CTL_ADD, fd, &ev) < 0) // TODO: is it ok?
+    if (epoll_ctl(efd, EPOLL_CTL_ADD, fd, &ev) < 0) // TODO: i created `ev` on stack and pass it as a parameter, ok?
     {
         throw std::runtime_error("error in epoll_ctl(EPOLL_CTL_ADD)\n" + std::string(strerror(errno)));
     }

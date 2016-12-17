@@ -45,7 +45,20 @@ int tcp_helper::getportbyhost(std::string host)
 
 void tcp_helper::getaddrbyhost(std::string host, std::string &addr)
 {
-    struct hostent *tmp = gethostbyname(host.c_str());
+    struct hostent *tmp;
+    while (1)
+    {
+        tmp = gethostbyname(host.c_str());
+        if (tmp == nullptr)
+        {
+            if (errno == EINTR)
+            {
+                continue;
+            }
+            throw std::runtime_error("error in gethostbyname():\n" + std::string(strerror(errno)));
+        }
+        break;
+    }
     addr = std::string(tmp->h_addr, tmp->h_length);
 }
 
