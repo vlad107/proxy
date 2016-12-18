@@ -42,6 +42,8 @@ public:
 
 class host_data
 {
+    std::mutex _mutex;
+    std::condition_variable cond;
     std::unique_ptr<http_buffer> buffer_in;
     std::unique_ptr<http_buffer> buffer_out;
     std::unique_ptr<http_parser> response_header;
@@ -61,6 +63,8 @@ public:
     host_data(host_data&&) = delete;
 
     host_data(epoll_handler *_efd, std::function<void()>, std::function<void(int)>);
+    ~host_data();
+    void notify();
     void add_request(std::deque<char> req);
     void add_response(std::deque<char> resp);
     std::deque<char> extract_response();

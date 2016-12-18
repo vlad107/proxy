@@ -2,46 +2,34 @@
 
 background_executor::background_executor()
     : alive(true)
-    , num_execs()
 {
-    try
+    // TODO: will threads.resize(THREADS_AMOUNT) work?
+    for (size_t i = 0; i < THREADS_AMOUNT; i++)
     {
-        for (int i = 0; i < THREADS_AMOUNT; i++)
+        threads.push_back(std::make_unique<smart_thread>(&alive, [this, i]()
         {
-            threads.push_back(std::make_unique<smart_thread>([this, i]()
-            {
-                    while (alive)
+                while (alive)
+                {
+                    try
                     {
-                        try
+                        std::function<void()> handler;
                         {
                             std::unique_lock<std::mutex> lock(_mutex);
-                            while (tasks.empty()) // todo: cond.wait(..., ...)
+                            cond.wait(lock, [this]()
                             {
-                                cond.wait(lock);
-                                if (!alive)
-                                {
-                                    return;
-                                }
-                            }
-                            auto handler = tasks.front();
+                                return !tasks.empty() || !alive;
+                            });
+                            if (!alive) return;
+                            handler = tasks.front();
                             tasks.pop();
-                            lock.unlock();
-                            std::cerr << "executing at thread " << i << std::endl;
-                            ++num_execs[i];
-                            handler();
-                        } catch (const std::exception &e)
-                        {
-                            std::cerr << e.what() << std::endl;
                         }
+                        handler();
+                    } catch (const std::exception &e)
+                    {
+                        std::cerr << e.what() << std::endl;
                     }
-            }));
-        }
-    } catch (...)
-    {
-        alive = false;
-        cond.notify_all();
-        for (auto &thread : threads) thread->join();
-        throw;
+                }
+        }));
     }
 }
 
@@ -54,18 +42,8 @@ void background_executor::add_task(std::function<void ()> task)
 
 background_executor::~background_executor()
 {
+    std::cerr << "~background_executor()" << std::endl;
     alive = false;
     cond.notify_all();
-    for (auto &thread : threads)
-    {
-        thread->join();
-    }
 }
 
-void background_executor::print_num_execs()
-{
-    for (int i = 0; i < THREADS_AMOUNT; i++)
-    {
-        std::cerr << "number of executions on thread " << i << ": " << num_execs[i] << std::endl;
-    }
-}

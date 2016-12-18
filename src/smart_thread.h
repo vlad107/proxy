@@ -4,9 +4,10 @@
 
 class smart_thread
 {
+    bool *alive;
     std::thread th;
 public:
-    smart_thread(std::function<void()> handler);
+    smart_thread(bool *alive, std::function<void()> handler);
     ~smart_thread();
     void join();
 };

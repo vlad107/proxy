@@ -13,6 +13,8 @@ epoll_handler::epoll_handler()
 epoll_handler::~epoll_handler()
 {
     std::cerr << "closing epoll handler" << std::endl;
+    for (auto deleter: deleters) deleter();
+    deleters.clear();
     assert(close(efd) == 0);
     assert(events.empty());
 }
@@ -90,9 +92,4 @@ void epoll_handler::add_deleter(std::function<void ()> func)
 void epoll_handler::add_background_task(std::function<void()> handler)
 {
     background.add_task(handler);
-}
-
-void epoll_handler::print_num_execs()
-{
-    background.print_num_execs();
 }

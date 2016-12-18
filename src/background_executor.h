@@ -13,17 +13,15 @@
 
 class background_executor
 {
-    static const int THREADS_AMOUNT = 4;
+    static const size_t THREADS_AMOUNT = 4;
     std::vector<std::unique_ptr<smart_thread>> threads;
     std::mutex _mutex;
     std::queue<std::function<void()>> tasks;
     std::condition_variable cond;
     bool alive;
-    int num_execs[THREADS_AMOUNT]; // std::array
 public:
     background_executor();
     ~background_executor();
-    void print_num_execs();
     void add_task(std::function<void()> task);
 };
 

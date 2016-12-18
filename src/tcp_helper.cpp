@@ -97,8 +97,3 @@ std::string tcp_helper::normalize(std::string s)
     return s;
 }
 
-//void tcp_helper::prevent_signal(int fd)
-//{
-//    int ok = 1;
-//    setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void*) &ok, sizeof(ok));
-//}

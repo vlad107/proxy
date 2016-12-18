@@ -103,8 +103,8 @@ bool http_buffer::write_all(int fd)
         {            data.erase(data.begin(), data.begin() + _write);
         } else if (_write < 0)
         {
-            std::cerr << "error in write():\n";
-            std::cerr << strerror(errno) << std::endl;
+//            std::cerr << "error in write():\n";
+//            std::cerr << strerror(errno) << std::endl;
         } else break;
     }
     std::cerr << "finish writing" << std::endl;
@@ -125,10 +125,24 @@ host_data::host_data(epoll_handler *_efd,
     response_header = std::make_unique<http_parser>();
 }
 
+host_data::~host_data()
+{
+    assert(_started);
+    std::unique_lock<std::mutex> lock(_mutex);
+    cond.wait(lock, [this]()
+    {
+        return _started;
+    });
+}
+
+void host_data::notify()
+{
+    cond.notify_all();
+}
+
 void host_data::start_on_socket(sockfd host_socket)
 {
     assert(!_started);
-    _started = true;
     server_fdout = std::move(host_socket);
     std::cerr << "host opened on " << server_fdout.getd() << " descriptor" << std::endl;
     tcp_helper::make_nonblocking(server_fdout.getd());
@@ -161,6 +175,7 @@ void host_data::start_on_socket(sockfd host_socket)
     {
         activate_request_handler();
     }
+    _started = true;
 }
 
 void host_data::activate_request_handler()
@@ -310,9 +325,9 @@ void transfer_data::data_occured(int fd)
                     }
                 });
 
-                hosts[host]->add_request(req);
                 auto &iter = hosts[host];
-                efd->add_background_task([this, host, &iter]()
+                iter->add_request(req);
+                auto back_handler = [this, host, &iter]()
                 {
                     std::cerr << "host: " << host << std::endl;
                     int port = tcp_helper::getportbyhost(host);
@@ -322,7 +337,11 @@ void transfer_data::data_occured(int fd)
                     std::cerr << "   addr: " << host_addr << std::endl;
                     sockfd host_socket(tcp_helper::open_connection(host_addr, port));
                     iter->start_on_socket(std::move(host_socket));
-                });
+                    iter->notify();
+                };
+//                bool alive = true;
+//                smart_thread task(&alive, back_handler);
+                efd->add_background_task(std::move(back_handler));
             } else
             {
                 hosts[host]->add_request(req);
