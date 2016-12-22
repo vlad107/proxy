@@ -25,10 +25,11 @@ std::deque<char> tcp_helper::read_all(int fd)
         tmp[_read] = 0;
         result.insert(result.end(), tmp, tmp + _read);
     }
-    if (_read < 0)
+    if ((_read < 0) && (errno != EAGAIN))
     {
+        throw std::runtime_error("error in read():\n" + std::string(strerror(errno)));
         std::cerr << "error in read():" << std::endl;
-        std::cerr << std::string(strerror(errno)) << std::endl;
+//        std::cerr << std::string(strerror(errno)) << std::endl;
     }
     return result;
 }

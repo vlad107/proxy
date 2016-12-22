@@ -28,7 +28,6 @@ void http_parser::parse_header(std::string header)
     is_empty = false;
     while (getline(in, line))
     {
-        if (line == "") continue;
         int sep = line.find(": ");
         if (sep != std::string::npos)
         {
@@ -54,14 +53,12 @@ int http_parser::get_content_len()
     try
     {
         std::string content_len = get_header_item("Content-Length");
-        std::cerr << "Content-Length = " << content_len << std::endl;
         len = stoi(content_len);
     } catch (...)
     {
         try
         {
             std::string type = get_header_item("Transfer-Encoding");
-            std::cerr << type << std::endl;
             if (type.find("chunked") != std::string::npos)
             {
                 return -1;

@@ -36,7 +36,6 @@ void http_buffer::initialize()
 
 void http_buffer::add_chunk(std::deque<char> s)
 {
-//    std::cerr << "adding:\n=====\n" << s.size() << "\n====\nto buffer" << std::endl;
     data.insert(data.end(), s.begin(), s.end());
     for (size_t i = data.size() - s.size(); (i < data.size()); i++)
     {
@@ -121,7 +120,6 @@ bool http_buffer::empty()
 
 bool http_buffer::write_all(int fd)
 {
-    std::cerr << "start writing" << std::endl;
     while (true)
     {
         const size_t BUFF_SIZE = 1024;
@@ -135,7 +133,6 @@ bool http_buffer::write_all(int fd)
         {
         } else break;
     }
-    std::cerr << "finish writing" << std::endl;
     return data.empty();
 }
 
@@ -147,7 +144,6 @@ host_data::host_data(epoll_handler *_efd,
     disconnect_handler = _disconnect_handler;
     response_handler = _response_handler;
     efd = _efd;
-    std::cerr << "opening connection" << std::endl;
     buffer_in = std::make_unique<http_buffer>();
     buffer_out = std::make_unique<http_buffer>();
     response_header = std::make_unique<http_parser>();
@@ -171,7 +167,6 @@ void host_data::start_on_socket(sockfd host_socket)
 {
     assert(!_started);
     server_fdout = std::move(host_socket);
-    std::cerr << "host opened on " << server_fdout.getd() << " descriptor" << std::endl;
     tcp_helper::make_nonblocking(server_fdout.getd());
     int tmpfd = dup(server_fdout.getd());
     if (tmpfd < 0)
@@ -179,22 +174,20 @@ void host_data::start_on_socket(sockfd host_socket)
         throw std::runtime_error("error in dup()");
     }
     server_fdin = std::move(sockfd(tmpfd));
-    std::cerr << "second descriptor for host is " << server_fdin.getd() << std::endl;
     tcp_helper::make_nonblocking(server_fdin.getd());
     response_event = std::make_unique<event_registration>(efd,
                                                server_fdin.getd(),
                                                EPOLLIN | EPOLLRDHUP,
                                                [this](int _fd, int _event)
     {
-        if (_event & EPOLLIN)
-        {
-            response_handler(_fd);
-            _event ^= EPOLLIN;
-        }
         if (_event & EPOLLRDHUP)
         {
             efd->add_deleter(disconnect_handler);
             _event ^= EPOLLRDHUP;
+        } else if (_event & EPOLLIN)
+        {
+            response_handler(_fd);
+            _event ^= EPOLLIN;
         }
         return _event;
     });
@@ -207,7 +200,6 @@ void host_data::start_on_socket(sockfd host_socket)
 
 void host_data::activate_request_handler()
 {
-    std::cerr << "activating request_handler" << std::endl;
     request_event = std::make_shared<event_registration>(efd,
                                                          server_fdout.getd(),
                                                          EPOLLOUT,
@@ -284,7 +276,8 @@ int transfer_data::get_client_infd()
 void transfer_data::data_occured(int fd)
 {
     std::cerr << "data_ocured on " << fd << std::endl;
-    client_buffer->add_chunk(tcp_helper::read_all(fd));
+    auto _tmp = tcp_helper::read_all(fd);
+    client_buffer->add_chunk(_tmp);
     while (client_buffer->header_available())
     {
         if (request_header->empty())
