@@ -102,6 +102,8 @@ private:
     std::unique_ptr<http_buffer> client_buffer;
     std::unique_ptr<http_buffer> response_buffer;
     std::unordered_map<std::string, std::unique_ptr<host_data>> hosts;
+
+    void return_response(std::deque<char>);
 };
 
 #endif // CLIENT_DATA_H

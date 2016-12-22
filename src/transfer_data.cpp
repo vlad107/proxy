@@ -166,6 +166,7 @@ void host_data::notify()
 void host_data::bad_request()
 {
     _started = true;
+    efd->add_deleter(disconnect_handler);
 }
 
 void host_data::start_on_socket(sockfd host_socket)
@@ -278,6 +279,32 @@ int transfer_data::get_client_infd()
     return client_infd.getd();
 }
 
+void transfer_data::return_response(std::deque<char> http_response)
+{
+    if (response_buffer->empty())
+    {
+        response_event = std::make_shared<event_registration>(efd,
+                                                              client_outfd.getd(),
+                                                              EPOLLOUT,
+                                                              [&](int _fd, int _event)
+        {
+            if (_event & EPOLLOUT) // todo: how to write it like a cool guy?
+            {
+                if (response_buffer->write_all(_fd))
+                {
+                    efd->add_deleter([&]()
+                    {
+                        response_event.reset();
+                    });
+                }
+                _event ^= EPOLLOUT;
+            }
+            return _event;
+        });
+    }
+    response_buffer->add_chunk(http_response);
+}
+
 void transfer_data::data_occured(int fd)
 {
     std::cerr << "data_ocured on " << fd << std::endl;
@@ -314,28 +341,7 @@ void transfer_data::data_occured(int fd)
                     {
                         std::deque<char> http_response = hosts[result_q.front()]->extract_response();
                         result_q.pop();
-                        if (response_buffer->empty())
-                        {
-                            response_event = std::make_shared<event_registration>(efd,
-                                                                                  client_outfd.getd(),
-                                                                                  EPOLLOUT,
-                                                                                  [&](int _fd, int _event)
-                            {
-                                if (_event & EPOLLOUT) // todo: how to write it like a cool guy?
-                                {
-                                    if (response_buffer->write_all(_fd))
-                                    {
-                                        efd->add_deleter([&]()
-                                        {
-                                            response_event.reset();
-                                        });
-                                    }
-                                    _event ^= EPOLLOUT;
-                                }
-                                return _event;
-                            });
-                        }
-                        response_buffer->add_chunk(http_response);
+                        return_response(http_response);
                     }
                 });
 
