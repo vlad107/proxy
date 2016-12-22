@@ -345,8 +345,6 @@ void transfer_data::data_occured(int fd)
                     iter->start_on_socket(std::move(host_socket));
                     iter->notify();
                 };
-//                bool alive = true;
-//                smart_thread task(&alive, back_handler);
                 efd->add_background_task(std::move(back_handler));
             } else
             {
