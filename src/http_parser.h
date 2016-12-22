@@ -4,6 +4,9 @@
 #include <iostream>
 #include <sstream>
 
+#define REQUEST 1
+#define RESPONSE 2
+
 class http_parser
 {
     std::map<std::string, std::string> header_items;

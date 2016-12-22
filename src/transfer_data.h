@@ -16,12 +16,13 @@
 const int BUFF_SIZE = 1024;
 
 const std::string SEPARATORs[2] = {"\r\n\r\n", "\n\n"};
-const std::string HTTP_END = "0\r\n\r\n";
+const std::string BODY_END = "0\r\n\r\n";
 
 class http_buffer
 {
     std::deque<char> data;
     bool _was_header_end;
+    bool _was_body_end;
     size_t header_end;
     void initialize();
 
@@ -36,6 +37,7 @@ public:
     bool empty();
     void debug_write();
     bool write_all(int fd);
+    bool available_body(int body_len);
     std::string get_header();
     std::deque<char> extract_front_http(int body_len);
 };
@@ -85,14 +87,15 @@ public:
     transfer_data &operator=(transfer_data&&) = delete;
     transfer_data(transfer_data&&) = delete;
 
-    transfer_data(int fd, epoll_handler *efd);
+    transfer_data(sockfd cfd, epoll_handler *efd);
     void data_occured(int fd);
+    int get_client_infd();
 private:
     std::shared_ptr<event_registration> response_event;
     std::queue<std::string> result_q;
     epoll_handler *efd;
-    std::unique_ptr<sockfd> client_infd;
-    std::unique_ptr<sockfd> client_outfd;
+    sockfd client_infd;
+    sockfd client_outfd;
     std::unique_ptr<http_parser> request_header;
 
     std::unique_ptr<http_buffer> client_buffer;

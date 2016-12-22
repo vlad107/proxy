@@ -36,3 +36,13 @@ sockfd &sockfd::operator=(sockfd &&other) // TODO: swap-trick should be here
 //    std::swap(fd, other.fd);
     return *this;
 }
+
+int sockfd::dup()
+{
+    int tmp = ::dup(fd);
+    if (tmp < 0)
+    {
+        throw std::runtime_error("error in dup(" + std::to_string(fd) + "):\n" + std::string(strerror(errno)));
+    }
+    return tmp;
+}

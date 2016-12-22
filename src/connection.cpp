@@ -1,25 +1,29 @@
 #include "connection.h"
 
-connection::connection(int client_fd, epoll_handler *efd) : client_fd(client_fd), efd(efd)
+connection::connection(sockfd cfd, epoll_handler *efd)
+    : efd(efd),
+      _was_disconnect_handler(false),
+      data(std::move(cfd), efd)
 {
-    data = std::make_unique<transfer_data>(client_fd, efd);
 }
 
 void connection::set_disconnect(std::function<void ()> disconnect_handler)
 {
-    this->disconnect_handler = disconnect_handler;
+    _was_disconnect_handler = true;
+    this->disconnect_handler = std::move(disconnect_handler);
 }
 
 void connection::start()
 {
+    assert(_was_disconnect_handler);
     reg = std::make_unique<event_registration>(efd,
-                                               client_fd,
+                                               data.get_client_infd(),
                                                EPOLLIN | EPOLLRDHUP,
                                                [this](int _fd, int _event)
     {
         if (_event & EPOLLIN)
         {
-            data->data_occured(_fd);
+            data.data_occured(_fd);
             _event ^= EPOLLIN;
         }
         if (_event & EPOLLRDHUP)

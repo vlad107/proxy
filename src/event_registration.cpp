@@ -1,9 +1,9 @@
 #include "event_registration.h"
 
 event_registration::event_registration(epoll_handler *efd, int fd, int mask, std::function<int(int, int)> handler)
+    : efd(efd), fd(fd)
 {
-    this->efd = efd;
-    this->fd = fd;
+
     efd->add_event(fd, mask, handler);
 }
 

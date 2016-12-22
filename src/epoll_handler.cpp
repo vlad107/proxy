@@ -19,6 +19,43 @@ epoll_handler::~epoll_handler()
     assert(events.empty());
 }
 
+void epoll_handler::loop()
+{
+    struct epoll_event evs[MAX_EVENTS];
+    while (!term)
+    {
+        std::cerr << "============================ new iteration ============================" << std::endl;
+        for (auto deleter : deleters) deleter();
+        deleters.clear();
+        std::cerr << "executed deleters" << std::endl;
+        int ev_sz;
+        if ((ev_sz = epoll_wait(efd, evs, MAX_EVENTS, -1)) < 0)
+        {
+            if (errno = EINTR)
+            {
+                std::cerr << "epoll_wait was interrupted" << std::endl;
+                continue;
+            }
+            throw std::runtime_error("error in epoll_wait()");
+        }
+        for (int i = 0; (i < ev_sz) && (!term); i++)
+        {
+            if (evs[i].events & (EPOLLERR | EPOLLHUP))
+            {
+                evs[i].events |= EPOLLRDHUP; // todo: some error? let's just remove it. very strange
+            }
+            int fd = evs[i].data.fd;
+            assert(events.count(fd) != 0);
+            auto cur_handler = events[fd];
+            int rem = cur_handler(fd, evs[i].events);
+            if (rem & EPOLLRDHUP)
+            {
+                std::cerr << "error in epoll" << std::endl;
+            }
+        }
+    }
+}
+
 void epoll_handler::add_event(int fd, int mask, std::function<int(int, int)> handler)
 {
     std::cerr << "try to add descriptor " << fd << " to the epoll" << std::endl;
@@ -33,43 +70,6 @@ void epoll_handler::add_event(int fd, int mask, std::function<int(int, int)> han
         events[fd] = handler;
     }
     std::cerr << "descriptor was added" << std::endl;
-}
-
-void epoll_handler::loop()
-{
-    struct epoll_event evs[MAX_EVENTS];
-    while (!term)
-    {
-        std::cerr << "============================ new iteration ============================" << std::endl;
-        for (auto deleter : deleters) deleter();
-        deleters.clear();
-        std::cerr << "executed deleters" << std::endl;
-        int ev_sz;
-        if ((ev_sz = epoll_wait(efd, evs, MAX_EVENTS, -1)) < 0)
-        {
-            std::cerr << "error in epoll_wait" << std::endl;
-            if (errno = EINTR) continue;
-            throw std::runtime_error("error in epoll_wait()");
-        }
-        std::cerr << "executed epoll_wait" << std::endl;
-        for (int i = 0; (i < ev_sz) && (!term); i++)
-        {
-            if (evs[i].events & (EPOLLERR | EPOLLHUP))
-            {
-                evs[i].events |= EPOLLRDHUP;
-//                throw std::runtime_error("some error occured in epoll");
-            }
-            int fd = evs[i].data.fd;
-            std::cerr << "event on " << fd << std::endl;
-            assert(events.count(fd) != 0);
-            auto cur_handler = events[fd];
-            int rem = cur_handler(fd, evs[i].events);
-            if (rem & EPOLLRDHUP)
-            {
-                std::cerr << "error in epoll" << std::endl;
-            }
-        }
-    }
 }
 
 void epoll_handler::rem_event(int fd)

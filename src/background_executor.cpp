@@ -46,4 +46,3 @@ background_executor::~background_executor()
     alive = false;
     cond.notify_all();
 }
-

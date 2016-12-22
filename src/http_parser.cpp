@@ -59,7 +59,18 @@ int http_parser::get_content_len()
         len = stoi(content_len);
     } catch (...)
     {
-        len = 0;
+        try
+        {
+            std::string type = get_header_item("Transfer-Encoding");
+            if (type == "chunked")
+            {
+                return -1;
+            }
+            return 0;
+        } catch (...)
+        {
+            return 0;
+        }
     }
     return len;
 }

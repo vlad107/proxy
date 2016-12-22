@@ -11,9 +11,21 @@ void http_buffer::debug_write()
     std::cerr << "data(" << s.size() << "):\n=====" << s << "\n=====" << std::endl;
 }
 
+bool http_buffer::available_body(int body_len)
+{
+    if (body_len != -1)
+    {
+        return (size() - get_header_end()) >= body_len;
+    } else
+    {
+        return _was_body_end;
+    }
+}
+
 void http_buffer::initialize()
 {
     _was_header_end = false;
+    _was_body_end = false;
     header_end = -1;
     for (size_t i = 0; i < data.size(); i++)
     {
@@ -49,6 +61,9 @@ void http_buffer::update_char(int idx)
             header_end = idx;
         }
     }
+    int beg = std::max(0, 1 + idx - (int)BODY_END.size());
+    std::string cur(data.begin() + beg, data.begin() + idx + 1);
+    if (cur == BODY_END) _was_body_end = true;
 }
 
 int http_buffer::get_header_end()
@@ -127,7 +142,6 @@ host_data::host_data(epoll_handler *_efd,
 
 host_data::~host_data()
 {
-    assert(_started);
     std::unique_lock<std::mutex> lock(_mutex);
     cond.wait(lock, [this]()
     {
@@ -219,9 +233,8 @@ bool host_data::available_response()
         {
             response_header->parse_header(buffer_out->get_header());
         }
-        int available_len = buffer_out->size() - buffer_out->get_header_end();
         int body_len = response_header->get_content_len();
-        if (available_len >= body_len)
+        if (buffer_out->available_body(body_len))
         {
             return true;
         }
@@ -244,27 +257,26 @@ void host_data::add_response(std::deque<char> resp)
     std::cerr << "response was added" << std::endl;
 }
 
-transfer_data::transfer_data(int _fd, epoll_handler *_efd)
+transfer_data::transfer_data(sockfd cfd, epoll_handler *efd)
+    : efd(efd),
+      client_infd(std::move(cfd)),
+      client_outfd(client_infd.dup())
 {
-    client_infd = std::make_unique<sockfd>(_fd);
-    int tmpfd = dup(_fd);
-    if (tmpfd < 0)
-    {
-        throw std::runtime_error("error in dup()");
-    }
-    client_outfd = std::make_unique<sockfd>(tmpfd);
-    efd = _efd;
     client_buffer = std::make_unique<http_buffer>();
     request_header = std::make_unique<http_parser>();
     response_buffer = std::make_unique<http_buffer>();
-    tcp_helper::make_nonblocking(client_infd->getd());
+    tcp_helper::make_nonblocking(client_infd.getd());
+}
+
+int transfer_data::get_client_infd()
+{
+    return client_infd.getd();
 }
 
 void transfer_data::data_occured(int fd)
 {
-    std::cerr << "reading request now" << std::endl;
+    std::cerr << "data_ocured on " << fd << std::endl;
     client_buffer->add_chunk(tcp_helper::read_all(fd));
-//    client_buffer->debug_write();
     while (client_buffer->header_available())
     {
         std::cerr << "request_header available" << std::endl;
@@ -303,11 +315,11 @@ void transfer_data::data_occured(int fd)
                         if (response_buffer->empty())
                         {
                             response_event = std::make_shared<event_registration>(efd,
-                                                                                  client_outfd->getd(),
+                                                                                  client_outfd.getd(),
                                                                                   EPOLLOUT,
                                                                                   [&](int _fd, int _event)
                             {
-                                if (_event & EPOLLOUT)
+                                if (_event & EPOLLOUT) // todo: how to write it like a cool guy?
                                 {
                                     if (response_buffer->write_all(_fd))
                                     {
