@@ -62,7 +62,8 @@ int http_parser::get_content_len()
         try
         {
             std::string type = get_header_item("Transfer-Encoding");
-            if (type == "chunked")
+            std::cerr << type << std::endl;
+            if (type.find("chunked") != std::string::npos)
             {
                 return -1;
             }

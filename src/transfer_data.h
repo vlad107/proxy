@@ -23,7 +23,8 @@ class http_buffer
     std::deque<char> data;
     bool _was_header_end;
     bool _was_body_end;
-    size_t header_end;
+    int body_end_idx;
+    int header_end_idx;
     void initialize();
 
     void update_char(int idx);
@@ -33,7 +34,6 @@ public:
     void add_chunk(std::deque<char>);
     bool header_available();
     int size();
-    int get_header_end();
     bool empty();
     void debug_write();
     bool write_all(int fd);

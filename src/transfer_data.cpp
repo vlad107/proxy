@@ -15,7 +15,7 @@ bool http_buffer::available_body(int body_len)
 {
     if (body_len != -1)
     {
-        return (size() - get_header_end()) >= body_len;
+        return (_was_header_end) && ((size() - header_end_idx) >= body_len);
     } else
     {
         return _was_body_end;
@@ -26,10 +26,10 @@ void http_buffer::initialize()
 {
     _was_header_end = false;
     _was_body_end = false;
-    header_end = -1;
+    header_end_idx = -1;
+    body_end_idx = -1;
     for (size_t i = 0; i < data.size(); i++)
     {
-        if (_was_header_end) break;
         update_char(i);
     }
 }
@@ -38,9 +38,8 @@ void http_buffer::add_chunk(std::deque<char> s)
 {
     std::cerr << "adding:\n=====\n" << s.size() << "\n====\nto buffer" << std::endl;
     data.insert(data.end(), s.begin(), s.end());
-    for (size_t i = data.size() - s.size(); i < data.size(); i++)
+    for (size_t i = data.size() - s.size(); (i < data.size()); i++)
     {
-        if (_was_header_end) break;
         update_char(i);
     }
 }
@@ -52,23 +51,28 @@ bool http_buffer::header_available()
 
 void http_buffer::update_char(int idx)
 {
-    for (int i = 0; i < 2; i++) {
-        int beg = std::max(0, 1 + idx - (int)SEPARATORs[i].size());
+    if (!_was_body_end)
+    {
+        int beg = std::max(0, 1 + idx - (int)BODY_END.size());
         std::string cur(data.begin() + beg, data.begin() + idx + 1);
-        if (cur == SEPARATORs[i])
+        if (cur == BODY_END)
         {
-            _was_header_end = true;
-            header_end = idx;
+            _was_body_end = true;
+            body_end_idx = idx;
         }
     }
-    int beg = std::max(0, 1 + idx - (int)BODY_END.size());
-    std::string cur(data.begin() + beg, data.begin() + idx + 1);
-    if (cur == BODY_END) _was_body_end = true;
-}
-
-int http_buffer::get_header_end()
-{
-    return header_end;
+    if (!_was_header_end)
+    {
+        for (int i = 0; i < 2; i++) {
+            int beg = std::max(0, 1 + idx - (int)SEPARATORs[i].size());
+            std::string cur(data.begin() + beg, data.begin() + idx + 1);
+            if (cur == SEPARATORs[i])
+            {
+                _was_header_end = true;
+                header_end_idx = idx;
+            }
+        }
+    }
 }
 
 std::deque<char> http_buffer::substr(int from, int to)
@@ -83,8 +87,18 @@ std::deque<char> http_buffer::substr(int from, int to)
 
 std::deque<char> http_buffer::extract_front_http(int body_len)
 {
-    std::deque<char> result = substr(0, header_end + 1 + body_len);
-    data.erase(data.begin(), data.begin() + header_end + 1 + body_len);
+    assert(_was_header_end);
+    int idx;
+    if (body_len < 0)
+    {
+        assert(_was_body_end);
+        idx = body_end_idx;
+    } else
+    {
+        idx = header_end_idx + body_len;
+    }
+    std::deque<char> result = substr(0, idx + 1);
+    data.erase(data.begin(), data.begin() + idx + 1);
     initialize();
     return result;
 }
@@ -96,7 +110,8 @@ int http_buffer::size()
 
 std::string http_buffer::get_header()
 {
-    return std::string(data.begin(), data.begin() + header_end + 1);
+    assert(_was_header_end);
+    return std::string(data.begin(), data.begin() + header_end_idx + 1);
 }
 
 bool http_buffer::empty()
@@ -234,10 +249,7 @@ bool host_data::available_response()
             response_header->parse_header(buffer_out->get_header());
         }
         int body_len = response_header->get_content_len();
-        if (buffer_out->available_body(body_len))
-        {
-            return true;
-        }
+        return buffer_out->available_body(body_len);
     }
     return false;
 }
@@ -286,8 +298,8 @@ void transfer_data::data_occured(int fd)
         }
         int body_len = request_header->get_content_len();
         std::string host = request_header->get_host();
-        int available_len = client_buffer->size() - client_buffer->get_header_end();
-        if (available_len >= body_len)
+//        int available_len = client_buffer->size() - client_buffer->get_header_end();
+        if (client_buffer->available_body(body_len))
         {
             request_header->clear();
 
