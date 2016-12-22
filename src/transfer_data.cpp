@@ -163,6 +163,11 @@ void host_data::notify()
     cond.notify_all();
 }
 
+void host_data::bad_request()
+{
+    _started = true;
+}
+
 void host_data::start_on_socket(sockfd host_socket)
 {
     assert(!_started);
@@ -340,9 +345,16 @@ void transfer_data::data_occured(int fd)
                 {
                     int port = tcp_helper::getportbyhost(host);
                     std::string host_addr;
-                    tcp_helper::getaddrbyhost(host, host_addr);
-                    sockfd host_socket(tcp_helper::open_connection(host_addr, port));
-                    iter->start_on_socket(std::move(host_socket));
+                    try
+                    {
+                        tcp_helper::getaddrbyhost(host, host_addr);
+                        sockfd host_socket(tcp_helper::open_connection(host_addr, port));
+                        iter->start_on_socket(std::move(host_socket));
+                    } catch (...)
+                    {
+                        std::cerr << "BAD REQUEST" << std::endl;
+                        iter->bad_request();
+                    }
                     iter->notify();
                 };
                 efd->add_background_task(std::move(back_handler));

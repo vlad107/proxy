@@ -67,6 +67,7 @@ public:
     host_data(epoll_handler *_efd, std::function<void()>, std::function<void(int)>);
     ~host_data();
     void notify();
+    void bad_request();
     void add_request(std::deque<char> req);
     void add_response(std::deque<char> resp);
     std::deque<char> extract_response();
