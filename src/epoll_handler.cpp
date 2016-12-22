@@ -27,7 +27,6 @@ void epoll_handler::loop()
         std::cerr << "============================ new iteration ============================" << std::endl;
         for (auto deleter : deleters) deleter();
         deleters.clear();
-        std::cerr << "executed deleters" << std::endl;
         int ev_sz;
         if ((ev_sz = epoll_wait(efd, evs, MAX_EVENTS, -1)) < 0)
         {
@@ -58,7 +57,6 @@ void epoll_handler::loop()
 
 void epoll_handler::add_event(int fd, int mask, std::function<int(int, int)> handler)
 {
-    std::cerr << "try to add descriptor " << fd << " to the epoll" << std::endl;
     epoll_event ev{};
     ev.data.fd = fd;
     ev.events = mask;
@@ -69,19 +67,16 @@ void epoll_handler::add_event(int fd, int mask, std::function<int(int, int)> han
     {
         events[fd] = handler;
     }
-    std::cerr << "descriptor was added" << std::endl;
 }
 
 void epoll_handler::rem_event(int fd)
 {
-    std::cerr << "removing descriptor " << fd << " from epoll" << std::endl;
     assert(events.count(fd) != 0);
     events.erase(events.find(fd));
     if (epoll_ctl(efd, EPOLL_CTL_DEL, fd, nullptr) < 0)
     {
         throw std::runtime_error("Error in epoll_ctl(EPOLL_CTL_DEL):\n" + std::string(strerror(errno)));
     }
-    std::cerr << "descriptor removed successfully" << std::endl;
 }
 
 void epoll_handler::add_deleter(std::function<void ()> func)

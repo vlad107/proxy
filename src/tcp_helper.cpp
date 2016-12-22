@@ -20,13 +20,11 @@ std::deque<char> tcp_helper::read_all(int fd)
     char tmp[BUFF_SIZE];
     int _read;
     std::deque<char> result;
-    std::cerr << "start reading" << std::endl;
     while ((_read = ::read(fd, tmp, BUFF_SIZE)) > 0)
     {
         tmp[_read] = 0;
         result.insert(result.end(), tmp, tmp + _read);
     }
-    std::cerr << "finish reading" << std::endl;
     if (_read < 0)
     {
         std::cerr << "error in read():" << std::endl;

@@ -42,7 +42,6 @@ void background_executor::add_task(std::function<void ()> task)
 
 background_executor::~background_executor()
 {
-    std::cerr << "~background_executor()" << std::endl;
     alive = false;
     cond.notify_all();
 }

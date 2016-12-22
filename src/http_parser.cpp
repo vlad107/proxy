@@ -21,7 +21,6 @@ std::string http_parser::get_header_item(std::string name)
 
 void http_parser::parse_header(std::string header)
 {
-    std::cerr << "parsing of:\n" << header << "\n---" << std::endl;
     std::stringstream in(header);
     std::string line;
     getline(in, line); // type of request/response first line with version of HTTP
@@ -29,6 +28,7 @@ void http_parser::parse_header(std::string header)
     is_empty = false;
     while (getline(in, line))
     {
+        if (line == "") continue;
         int sep = line.find(": ");
         if (sep != std::string::npos)
         {
@@ -40,7 +40,6 @@ void http_parser::parse_header(std::string header)
             std::cerr << "Warning: suspicious line in header of HTTP-request: " << line << std::endl;
         }
     }
-    std::cerr << "parsed" << std::endl;
 }
 
 void http_parser::clear()

@@ -9,9 +9,7 @@ sockfd::sockfd(int fd) : fd(fd)
 }
 
 sockfd::~sockfd()
-{
-    std::cerr << "closing socket " << fd << std::endl;
-    if (fd != -1)
+{    if (fd != -1)
     {
         int err = close(fd);
         assert(err == 0);

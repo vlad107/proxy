@@ -36,7 +36,7 @@ void http_buffer::initialize()
 
 void http_buffer::add_chunk(std::deque<char> s)
 {
-    std::cerr << "adding:\n=====\n" << s.size() << "\n====\nto buffer" << std::endl;
+//    std::cerr << "adding:\n=====\n" << s.size() << "\n====\nto buffer" << std::endl;
     data.insert(data.end(), s.begin(), s.end());
     for (size_t i = data.size() - s.size(); (i < data.size()); i++)
     {
@@ -133,8 +133,6 @@ bool http_buffer::write_all(int fd)
         {            data.erase(data.begin(), data.begin() + _write);
         } else if (_write < 0)
         {
-//            std::cerr << "error in write():\n";
-//            std::cerr << strerror(errno) << std::endl;
         } else break;
     }
     std::cerr << "finish writing" << std::endl;
@@ -264,9 +262,7 @@ std::deque<char> host_data::extract_response()
 
 void host_data::add_response(std::deque<char> resp)
 {
-    std::cerr << "adding response" << std::endl;
     buffer_out->add_chunk(resp);
-    std::cerr << "response was added" << std::endl;
 }
 
 transfer_data::transfer_data(sockfd cfd, epoll_handler *efd)
@@ -291,19 +287,16 @@ void transfer_data::data_occured(int fd)
     client_buffer->add_chunk(tcp_helper::read_all(fd));
     while (client_buffer->header_available())
     {
-        std::cerr << "request_header available" << std::endl;
         if (request_header->empty())
         {
             request_header->parse_header(client_buffer->get_header());
         }
         int body_len = request_header->get_content_len();
         std::string host = request_header->get_host();
-//        int available_len = client_buffer->size() - client_buffer->get_header_end();
         if (client_buffer->available_body(body_len))
         {
             request_header->clear();
 
-            std::cerr << "full http-request available" << std::endl;
             std::deque<char> req = client_buffer->extract_front_http(body_len);
             host = tcp_helper::normalize(host);
             result_q.push(host);
@@ -317,7 +310,6 @@ void transfer_data::data_occured(int fd)
                 },
                             [this, host](int ffd)
                 {
-                    std::cerr << "reading response now" << std::endl;
                     std::deque<char> response = tcp_helper::read_all(ffd);
                     hosts[host]->add_response(response);
                     while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
@@ -353,12 +345,9 @@ void transfer_data::data_occured(int fd)
                 iter->add_request(req);
                 auto back_handler = [this, host, &iter]()
                 {
-                    std::cerr << "host: " << host << std::endl;
                     int port = tcp_helper::getportbyhost(host);
-                    std::cerr << "   port: " << port << std::endl;
                     std::string host_addr;
                     tcp_helper::getaddrbyhost(host, host_addr);
-                    std::cerr << "   addr: " << host_addr << std::endl;
                     sockfd host_socket(tcp_helper::open_connection(host_addr, port));
                     iter->start_on_socket(std::move(host_socket));
                     iter->notify();
