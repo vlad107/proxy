@@ -42,7 +42,7 @@ public:
     bool write_all(int fd);
     bool available_body(int body_len, bool closed);
     std::string get_header();
-    std::deque<char> extract_front_http(int body_len);
+    std::deque<char> extract_front_http(int body_len, bool);
 };
 
 class host_data
@@ -79,6 +79,7 @@ public:
     void start_on_socket(sockfd host_socket);
     bool closed();
     void close();
+    bool empty();
 
     void debug_response()
     {

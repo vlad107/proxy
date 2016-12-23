@@ -25,6 +25,11 @@ std::string http_parser::get_header_item(std::string name)
     return header_items[name];
 }
 
+http_parser::VERSION http_parser::get_ver()
+{
+    return ver;
+}
+
 void http_parser::parse_header(std::string header)
 {
     std::stringstream in(header);
@@ -34,11 +39,14 @@ void http_parser::parse_header(std::string header)
     is_empty = false;
     if (line.find("HTTPS") != std::string::npos)
     {
-        _is_https = true;
-    } else if (line.find("HTTP") != std::string::npos)
+        ver = VERSION::HTTPS;
+    } else if (line.find("HTTP/1.0") != std::string::npos)
     {
-        _is_https = false;
-    } else assert(false);
+        ver = VERSION::HTTP10;
+    } else if (line.find("HTTP/1.1") != std::string::npos)
+    {
+        ver = VERSION::HTTP11;
+    } else assert(false); // todo: ver = other should be here
     while (getline(in, line))
     {
         int sep = line.find(": ");
@@ -69,6 +77,10 @@ int http_parser::get_content_len()
         len = stoi(content_len);
     } catch (...)
     {
+        if (get_ver() == HTTP10)
+        {
+            return -1;
+        }
         try
         {
             std::string type = get_header_item("Transfer-Encoding");
@@ -76,7 +88,7 @@ int http_parser::get_content_len()
             {
                 return -1;
             }
-            return 0;
+            assert(false);
         } catch (...)
         {
             return 0;

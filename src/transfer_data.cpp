@@ -84,12 +84,19 @@ std::deque<char> http_buffer::substr(int from, int to)
     return result;
 }
 
-std::deque<char> http_buffer::extract_front_http(int body_len)
+std::deque<char> http_buffer::extract_front_http(int body_len, bool takeitall)
 {
     assert(_was_header_end);
     int idx;
     if (body_len < 0)
     {
+        if (takeitall)
+        {
+            std::deque<char> result = data;
+            data.clear();
+            initialize();
+            return result;
+        }
         assert(_was_body_end);
         idx = body_end_idx;
     } else
@@ -218,6 +225,11 @@ void host_data::start_on_socket(sockfd host_socket)
     _started = true;
 }
 
+bool host_data::empty()
+{
+    return buffer_out.empty();
+}
+
 void host_data::activate_request_handler()
 {
     request_event = std::make_shared<event_registration>(efd,
@@ -231,7 +243,7 @@ void host_data::activate_request_handler()
             {
                 efd->add_deleter([this]()
                 {
-                    std::cerr << "deactivating request_handler" << std::endl;
+//                    std::cerr << "deactivating request_handler" << std::endl;
                     request_event.reset();
                 });
             }
@@ -267,7 +279,8 @@ bool host_data::available_response()
 std::deque<char> host_data::extract_response()
 {
     int body_len = response_header.get_content_len();
-    std::deque<char> result = buffer_out.extract_front_http(body_len);
+    std::deque<char> result = buffer_out.extract_front_http(body_len,
+                                                            (response_header.get_ver()==http_parser::VERSION::HTTP10) && closed());
     response_header.clear();
     return result;
 }
@@ -325,10 +338,6 @@ void transfer_data::response_occured(const std::string &host, std::deque<char> r
     while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
     {
         std::deque<char> http_response = hosts[result_q.front()]->extract_response();
-        std::cerr << "========================" << std::endl;
-        std::string tmp(http_response.begin(), http_response.end());
-        std::cerr << tmp << std::endl;
-        std::cerr << "========================" << std::endl;
         result_q.pop();
         return_response(http_response);
     }
@@ -349,17 +358,13 @@ void transfer_data::data_occured(int fd)
         if (client_buffer.available_body(body_len, false))
         {
             std::string host(tcp_helper::normalize(request_header.get_host()));
-            std::deque<char> req = client_buffer.extract_front_http(body_len);
+            std::deque<char> req = client_buffer.extract_front_http(body_len, false);
             if (request_header.is_https())
             {
                 assert(false);
             }
             request_header.clear();
             result_q.push(host);
-            if ((hosts.count(host) != 0) && (hosts[host]->closed()))
-            {
-                hosts.erase(host);
-            }
             if (hosts.count(host) == 0)
             {
                 hosts[host] = std::make_unique<host_data>(
@@ -367,12 +372,17 @@ void transfer_data::data_occured(int fd)
                             [this, host]()
                 {
                     hosts[host]->close();
+                    response_occured(host, std::deque<char>());
+                    if (hosts[host]->empty())
+                    {
+                        hosts.erase(host);
+                    }
                 },
                             [this, host](int ffd)
                 {
                     std::deque<char> response = tcp_helper::read_all(ffd);
                     response_occured(host, response);
-                    if (hosts[host]->closed())
+                    if ((hosts[host]->empty()) && (hosts[host]->closed()))
                     {
                         hosts.erase(host);
                     }
