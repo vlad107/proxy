@@ -45,7 +45,11 @@ void epoll_handler::loop()
                 evs[i].events |= EPOLLRDHUP; // todo: some error? let's just remove it. very strange
             }
             int fd = evs[i].data.fd;
-            assert(events.count(fd) != 0);
+            if (events.count(fd) == 0)
+            {
+                std::cerr << fd << std::endl;
+                assert(events.count(fd) != 0);
+            }
             auto cur_handler = events[fd];
             int rem = cur_handler(fd, evs[i].events);
             if (rem & EPOLLRDHUP)

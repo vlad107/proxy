@@ -12,6 +12,7 @@ background_executor::background_executor()
                 {
                     try
                     {
+                        std::cerr << "THREAD " << i << " IS AVAILABLE NOW" << std::endl;
                         std::function<void()> handler;
                         {
                             std::unique_lock<std::mutex> lock(_mutex);
@@ -23,6 +24,7 @@ background_executor::background_executor()
                             handler = tasks.front();
                             tasks.pop();
                         }
+                        std::cerr << "EXECUTING IN THREAD " << i << std::endl;
                         handler();
                     } catch (const std::exception &e)
                     {

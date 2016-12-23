@@ -11,6 +11,7 @@ void connection::set_disconnect(std::function<void ()> disconnect_handler)
 {
     _was_disconnect_handler = true;
     this->disconnect_handler = std::move(disconnect_handler);
+//    data.set_disconnect_handler(disconnect_handler);
 }
 
 void connection::start()
@@ -28,6 +29,7 @@ void connection::start()
         }
         if (_event & EPOLLRDHUP)
         {
+            std::cerr << "EPOLLRDHUP on " << _fd << std::endl;
             efd->add_deleter(disconnect_handler);
             _event ^= EPOLLRDHUP;
         }

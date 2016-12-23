@@ -1,8 +1,14 @@
 #include "http_parser.h"
 
 http_parser::http_parser()
+    : is_empty(true),
+      _is_https(false)
 {
-    is_empty = true;
+}
+
+bool http_parser::is_https()
+{
+    return _is_https;
 }
 
 bool http_parser::empty()
@@ -26,6 +32,13 @@ void http_parser::parse_header(std::string header)
     getline(in, line); // type of request/response first line with version of HTTP
     header_items.clear();
     is_empty = false;
+    if (line.find("HTTPS") != std::string::npos)
+    {
+        _is_https = true;
+    } else if (line.find("HTTP") != std::string::npos)
+    {
+        _is_https = false;
+    } else assert(false);
     while (getline(in, line))
     {
         int sep = line.find(": ");

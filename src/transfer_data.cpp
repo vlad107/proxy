@@ -149,7 +149,7 @@ host_data::host_data(epoll_handler *_efd,
       buffer_in(),
       buffer_out(),
       response_header(),
-      _error_occured(false)
+      _closed(false)
 {
 }
 
@@ -170,12 +170,12 @@ void host_data::notify()
 void host_data::bad_request()
 {
     _started = true;
-    _error_occured = true;
+    _closed = true;
 }
 
-bool host_data::error_occured()
+bool host_data::closed()
 {
-    return _error_occured;
+    return _closed;
 }
 
 void host_data::start_on_socket(sockfd host_socket)
@@ -320,6 +320,10 @@ void transfer_data::response_occured(const std::string &host, std::deque<char> r
     while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
     {
         std::deque<char> http_response = hosts[result_q.front()]->extract_response();
+        std::cerr << "========================" << std::endl;
+        std::string tmp(http_response.begin(), http_response.end());
+        std::cerr << tmp << std::endl;
+        std::cerr << "========================" << std::endl;
         result_q.pop();
         return_response(http_response);
     }
@@ -341,9 +345,13 @@ void transfer_data::data_occured(int fd)
         {
             std::string host(tcp_helper::normalize(request_header.get_host()));
             std::deque<char> req = client_buffer.extract_front_http(body_len);
+            if (request_header.is_https())
+            {
+                assert(false);
+            }
             request_header.clear();
             result_q.push(host);
-            if ((hosts.count(host) != 0) && (hosts[host]->error_occured()))
+            if ((hosts.count(host) != 0) && (hosts[host]->closed()))
             {
                 hosts.erase(host);
             }

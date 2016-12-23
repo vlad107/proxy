@@ -2,6 +2,7 @@
 #define HTTP_PARSER_H
 #include <map>
 #include <iostream>
+#include <assert.h>
 #include <sstream>
 
 #define REQUEST 1
@@ -12,8 +13,10 @@ class http_parser
     std::map<std::string, std::string> header_items;
     bool is_empty;
     std::string get_header_item(std::string name);
+    bool _is_https;
 public:
     http_parser();
+    bool is_https();
     bool empty();
     void parse_header(std::string header);
     void clear();
