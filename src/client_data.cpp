@@ -50,6 +50,59 @@ void client_data::response_occured(const std::string &host, std::deque<char> res
     }
 }
 
+void client_data::request_occured(const std::string & host, std::deque<char> req)
+{
+    if (hosts.count(host) == 0)
+    {
+        hosts[host] = std::make_unique<host_data>(
+                    efd,
+                    [this, host]()
+        {
+            hosts[host]->close();
+            response_occured(host, std::deque<char>());
+            if (hosts[host]->empty())
+            {
+                hosts.erase(host);
+            }
+        },
+                    [this, host](int ffd)
+        {
+            std::deque<char> response = tcp_helper::read_all(ffd);
+            response_occured(host, response);
+            if ((hosts[host]->empty()) && (hosts[host]->closed()))
+            {
+                hosts.erase(host);
+            }
+        });
+
+        auto &iter = hosts[host];
+        iter->add_request(req);
+        efd->add_background_task([this, host, &iter]()
+        {
+            int port = tcp_helper::getportbyhost(host);
+            std::string host_addr;
+            try
+            {
+                tcp_helper::getaddrbyhost(host, host_addr);
+                sockfd host_socket(tcp_helper::open_connection(host_addr, port));
+                iter->start_on_socket(std::move(host_socket));
+            } catch (...)
+            {
+                std::cerr << "BAD REQUEST" << std::endl;
+                iter->bad_request();
+                efd->add_deleter([this, host]()
+                {
+                    response_occured(host, BAD_REQUEST);
+                });
+            }
+            iter->notify();
+        });
+    } else
+    {
+        hosts[host]->add_request(req);
+    }
+}
+
 void client_data::data_occured(int fd)
 {
     std::cerr << "data_ocured on " << fd << std::endl;
@@ -67,55 +120,7 @@ void client_data::data_occured(int fd)
             std::deque<char> req = request_buffer.extract_front_http(request_header);
             request_header.clear();
             result_q.push(host);
-            if (hosts.count(host) == 0)
-            {
-                hosts[host] = std::make_unique<host_data>(
-                            efd,
-                            [this, host]()
-                {
-                    hosts[host]->close();
-                    response_occured(host, std::deque<char>());
-                    if (hosts[host]->empty())
-                    {
-                        hosts.erase(host);
-                    }
-                },
-                            [this, host](int ffd)
-                {
-                    std::deque<char> response = tcp_helper::read_all(ffd);
-                    response_occured(host, response);
-                    if ((hosts[host]->empty()) && (hosts[host]->closed()))
-                    {
-                        hosts.erase(host);
-                    }
-                });
-
-                auto &iter = hosts[host];
-                iter->add_request(req);
-                efd->add_background_task([this, host, &iter]()
-                {
-                    int port = tcp_helper::getportbyhost(host);
-                    std::string host_addr;
-                    try
-                    {
-                        tcp_helper::getaddrbyhost(host, host_addr);
-                        sockfd host_socket(tcp_helper::open_connection(host_addr, port));
-                        iter->start_on_socket(std::move(host_socket));
-                    } catch (...)
-                    {
-                        std::cerr << "BAD REQUEST" << std::endl;
-                        iter->bad_request();
-                        efd->add_deleter([this, host]()
-                        {
-                            response_occured(host, BAD_REQUEST);
-                        });
-                    }
-                    iter->notify();
-                });
-            } else
-            {
-                hosts[host]->add_request(req);
-            }
+            request_occured(host, req);
         }
     }
 }
