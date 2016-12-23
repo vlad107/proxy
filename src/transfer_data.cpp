@@ -308,6 +308,17 @@ void transfer_data::return_response(std::deque<char> http_response)
     response_buffer.add_chunk(http_response);
 }
 
+void transfer_data::response_occured(const std::string &host, std::deque<char> response)
+{
+    hosts[host]->add_response(response);
+    while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
+    {
+        std::deque<char> http_response = hosts[result_q.front()]->extract_response();
+        result_q.pop();
+        return_response(http_response);
+    }
+}
+
 void transfer_data::data_occured(int fd)
 {
     std::cerr << "data_ocured on " << fd << std::endl;
@@ -320,13 +331,11 @@ void transfer_data::data_occured(int fd)
             request_header.parse_header(client_buffer.get_header());
         }
         int body_len = request_header.get_content_len();
-        std::string host = request_header.get_host();
         if (client_buffer.available_body(body_len))
         {
-            request_header.clear();
-
+            std::string host(tcp_helper::normalize(request_header.get_host()));
             std::deque<char> req = client_buffer.extract_front_http(body_len);
-            host = tcp_helper::normalize(host);
+            request_header.clear();
             result_q.push(host);
             if (hosts.count(host) == 0)
             {
@@ -339,18 +348,12 @@ void transfer_data::data_occured(int fd)
                             [this, host](int ffd)
                 {
                     std::deque<char> response = tcp_helper::read_all(ffd);
-                    hosts[host]->add_response(response);
-                    while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
-                    {
-                        std::deque<char> http_response = hosts[result_q.front()]->extract_response();
-                        result_q.pop();
-                        return_response(http_response);
-                    }
+                    response_occured(host, response);
                 });
 
                 auto &iter = hosts[host];
                 iter->add_request(req);
-                auto back_handler = [this, host, &iter]()
+                efd->add_background_task([this, host, &iter]()
                 {
                     int port = tcp_helper::getportbyhost(host);
                     std::string host_addr;
@@ -362,16 +365,10 @@ void transfer_data::data_occured(int fd)
                     } catch (...)
                     {
                         std::cerr << "BAD REQUEST" << std::endl;
-//                        efd->add_deleter([this]()
-//                        {
-//                            return_response(BAD_REQUEST);
-//                        });
-
                         iter->bad_request();
                     }
                     iter->notify();
-                };
-                efd->add_background_task(std::move(back_handler));
+                });
             } else
             {
                 hosts[host]->add_request(req);
