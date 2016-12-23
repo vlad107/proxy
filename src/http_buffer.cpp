@@ -71,11 +71,7 @@ bool http_buffer::equals(size_t idx, const std::string s)
 {
     size_t beg = 1 + idx >= s.size() ? 1 + idx - s.size() : 0;
     std::string cur(data.begin() + beg, data.begin() + idx + 1);
-    if (cur == s)
-    {
-        _was_body_end = true;
-        body_end_idx = idx;
-    }
+    return cur == s;
 }
 
 void http_buffer::update_char(size_t idx)
