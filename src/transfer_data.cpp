@@ -11,15 +11,19 @@ void http_buffer::debug_write()
     std::cerr << "data(" << s.size() << "):\n=====" << s << "\n=====" << std::endl;
 }
 
-bool http_buffer::available_body(int body_len, bool closed)
+bool http_buffer::available_body(const http_parser &header)
 {
-    if (body_len != -1)
+    if (!_was_header_end) return false;
+    size_t content_length = header.get_content_length();
+    if (content_length == RESPONSE_CHUNKED)
     {
-        return (_was_header_end) && ((size() - header_end_idx) >= body_len);
-    } else
-    {
-        return _was_body_end | closed;
+        return _was_body_end;
     }
+    if (content_length == RESPONSE_UNTIL_END)
+    {
+        assert(false);
+    }
+    return size() - header_end_idx >= content_length;
 }
 
 void http_buffer::initialize()
@@ -84,32 +88,13 @@ std::deque<char> http_buffer::substr(int from, int to)
     return result;
 }
 
-std::deque<char> http_buffer::extract_front_http(int body_len, bool takeitall)
+std::deque<char> http_buffer::extract_front_http(const http_parser &header)
 {
     assert(_was_header_end);
-    int idx;
-    if (body_len < 0)
-    {
-        if (takeitall)
-        {
-            std::deque<char> result = data;
-            data.clear();
-            initialize();
-            return result;
-        }
-        assert(_was_body_end);
-        idx = body_end_idx;
-    } else
-    {
-        idx = header_end_idx + body_len;
-    }
-    std::deque<char> result = substr(0, idx + 1);
-    data.erase(data.begin(), data.begin() + idx + 1);
-    initialize();
-    return result;
+    assert(false);
 }
 
-int http_buffer::size()
+size_t http_buffer::size()
 {
     return data.size();
 }
@@ -270,17 +255,14 @@ bool host_data::available_response()
         {
             response_header.parse_header(buffer_out.get_header(), http_parser::DIRECTION::RESPONSE);
         }
-        int body_len = response_header.get_content_len();
-        return buffer_out.available_body(body_len, closed());
+        return buffer_out.available_body(response_header);
     }
     return false;
 }
 
 std::deque<char> host_data::extract_response()
 {
-    int body_len = response_header.get_content_len();
-    std::deque<char> result = buffer_out.extract_front_http(body_len,
-                                                            (response_header.get_ver()==http_parser::VERSION::HTTP10) && closed());
+    std::deque<char> result = buffer_out.extract_front_http(response_header);
     response_header.clear();
     return result;
 }
@@ -353,16 +335,12 @@ void transfer_data::data_occured(int fd)
         if (request_header.empty())
         {
             request_header.parse_header(request_buffer.get_header(), http_parser::DIRECTION::REQUEST);
+            assert(request_header.get_ver() != http_parser::VERSION::HTTPS);
         }
-        int body_len = request_header.get_content_len();
-        if (request_buffer.available_body(body_len, false))
+        if (request_buffer.available_body(request_header))
         {
             std::string host(tcp_helper::normalize(request_header.get_host()));
-            std::deque<char> req = request_buffer.extract_front_http(body_len, false);
-            if (request_header.is_https())
-            {
-                assert(false);
-            }
+            std::deque<char> req = request_buffer.extract_front_http(request_header);
             request_header.clear();
             result_q.push(host);
             if (hosts.count(host) == 0)

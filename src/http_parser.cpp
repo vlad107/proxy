@@ -7,26 +7,21 @@ http_parser::http_parser()
 {
 }
 
-bool http_parser::is_https()
-{
-    return _is_https;
-}
-
 bool http_parser::empty()
 {
     return is_empty;
 }
 
-std::string http_parser::get_header_item(std::string name)
+std::string http_parser::get_item(std::string name) const
 {
     if (header_items.count(name) == 0)
     {
         throw std::runtime_error("item " + name + " not found in http-request");
     }
-    return header_items[name];
+    return header_items.find(name)->second;
 }
 
-http_parser::VERSION http_parser::get_ver()
+http_parser::VERSION http_parser::get_ver() const
 {
     return ver;
 }
@@ -52,12 +47,17 @@ void http_parser::parse_header(std::string header, http_parser::DIRECTION dir)
     getline(in, line); // type of request/response first line with version of HTTP
     header_items.clear();
     is_empty = false;
+    dir = line.find("HTTP") == 0 ? DIRECTION::RESPONSE : DIRECTION::REQUEST;
     ver = extract_version(line);
-    line.erase(0, line.find(" "));
     if (dir == DIRECTION::RESPONSE)
     {
+        line.erase(0, line.find(" "));
         response_code = std::stoi(line);
         std::cerr << "RESPONSE CODE = " << response_code << std::endl;
+    }
+    if (dir == DIRECTION::REQUEST)
+    {
+        request_type = (line.find("GET") != std::string::npos) ? REQUEST_TYPE::GET : REQUEST_TYPE::POST;
     }
     while (getline(in, line))
     {
@@ -80,36 +80,51 @@ void http_parser::clear()
     header_items.clear();
 }
 
-int http_parser::get_content_len()
+size_t http_parser::get_content_length() const
 {
-    int len;
+    if ((dir == DIRECTION::RESPONSE) &&
+        (((100 <= response_code) && (response_code <= 199)) || (response_code == 204) || (response_code == 304)))
+    {
+        return 0;
+    }
+    if ((dir == DIRECTION::REQUEST) && (request_type == REQUEST_TYPE::GET))
+    {
+        return 0; // TODO: not always, but very often
+    }
     try
     {
-        std::string content_len = get_header_item("Content-Length");
-        len = stoi(content_len);
+        std::string connection = get_item("Connection");
+        if (connection.find("close") != std::string::npos)
+        {
+            return RESPONSE_UNTIL_END;
+        }
+        throw std::runtime_error("connection != close");
     } catch (...)
     {
-        if (get_ver() == HTTP10)
-        {
-            return -1;
-        }
         try
         {
-            std::string type = get_header_item("Transfer-Encoding");
-            if (type.find("chunked") != std::string::npos)
+            std::string encoding = get_item("Transfer-Encoding"); // TODO: rename get_header_item
+            if (encoding.find("identity") != std::string::npos)
             {
-                return -1;
+                return RESPONSE_CHUNKED;
             }
-            assert(false);
+            assert(false); // TODO: have not seen what to do in this case in RFC
         } catch (...)
         {
-            return 0;
+            try
+            {
+                std::string length = get_item("Content-Length");
+                return std::stoi(length);
+            } catch (...)
+            {
+                assert(false);
+            }
         }
     }
-    return len;
 }
 
-std::string http_parser::get_host()
+
+std::string http_parser::get_host() const
 {
-    return get_header_item("Host");
+    return get_item("Host");
 }

@@ -15,7 +15,7 @@
 
 const int BUFF_SIZE = 1024;
 
-const std::string SEPARATORs[2] = {"\r\n\r\n", "\n\n"};
+const std::string SEPARATORs[2] = {"\r\n\r\n", "\n\n"}; // TODO: \n\n unnecessarily
 const std::string BODY_END = "0\r\n\r\n";
 const std::string BAD_REQUEST_STR = "HTTP/1.1 400 Bad Request\r\nServer: proxy\r\nContent-Length: 91\r\nContent-Type: text/html; charset=iso-8859-1\r\nConnection: Closed\r\n\r\n<html><head><title>400 Bad Request</title></head><body><h1>Bad Request</h1></body></html>\r\n";
 const std::deque<char> BAD_REQUEST = tcp_helper::str_to_deque(BAD_REQUEST_STR);
@@ -36,13 +36,13 @@ public:
     http_buffer();
     void add_chunk(std::deque<char>);
     bool header_available();
-    int size();
+    size_t size();
     bool empty();
     void debug_write();
     bool write_all(int fd);
-    bool available_body(int body_len, bool closed);
+    bool available_body(const http_parser & header);
     std::string get_header();
-    std::deque<char> extract_front_http(int body_len, bool);
+    std::deque<char> extract_front_http(const http_parser &header);
 };
 
 class host_data
