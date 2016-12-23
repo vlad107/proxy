@@ -9,11 +9,11 @@ bool http_buffer::available_body(const http_parser &header, bool started)
 {
     assert(_was_header_end);
     size_t content_length = header.get_content_length();
-    if (content_length == RESPONSE_CHUNKED)
+    if (content_length == CHUNKED)
     {
         return _was_body_end;
     }
-    if (content_length == RESPONSE_UNTIL_END)
+    if (content_length == UNTIL_DISCONNECT)
     {
         assert(header.get_dir() == http_parser::Direction::RESPONSE); // TODO: if client is HTTP/1.0 then it's possible for request
         return !started;

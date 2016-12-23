@@ -100,7 +100,7 @@ size_t http_parser::get_content_length() const
         std::string connection = get_item("Connection");
         if (connection.find("close") != std::string::npos)
         {
-            return RESPONSE_UNTIL_END;
+            return UNTIL_DISCONNECT;
         }
         throw std::runtime_error("connection != close");
     } catch (...)
@@ -110,7 +110,7 @@ size_t http_parser::get_content_length() const
             std::string encoding = get_item("Transfer-Encoding"); // TODO: rename get_header_item
             if (encoding.find("identity") != std::string::npos)
             {
-                return RESPONSE_CHUNKED;
+                return CHUNKED;
             }
             assert(false); // TODO: have not seen what to do in this case in RFC
         } catch (...)

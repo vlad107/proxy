@@ -5,8 +5,9 @@
 #include <assert.h>
 #include <sstream>
 
-#define RESPONSE_CHUNKED -1
-#define RESPONSE_UNTIL_END -2
+#define CHUNKED -1
+#define UNTIL_DISCONNECT -2
+
 const std::string SEPARATORs[2] = {"\r\n\r\n", "\n\n"}; // TODO: \n\n unnecessarily
 const std::string BODY_END = "0\r\n\r\n";
 
