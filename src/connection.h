@@ -1,7 +1,7 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 #include "epoll_handler.h"
-#include "transfer_data.h"
+#include "client_data.h"
 #include "sockfd.h"
 #include "event_registration.h"
 
@@ -10,7 +10,7 @@ class connection
 {
     epoll_handler *efd;
     bool _was_disconnect_handler;
-    transfer_data data;
+    client_data data;
     event_registration reg;
     std::function<void()> disconnect_handler;
 public:

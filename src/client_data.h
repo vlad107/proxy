@@ -20,15 +20,15 @@ const int BUFF_SIZE = 1024;
 const std::string BAD_REQUEST_STR = "HTTP/1.1 400 Bad Request\r\nServer: proxy\r\nContent-Length: 91\r\nContent-Type: text/html; charset=iso-8859-1\r\nConnection: Closed\r\n\r\n<html><head><title>400 Bad Request</title></head><body><h1>Bad Request</h1></body></html>\r\n";
 const std::deque<char> BAD_REQUEST = tcp_helper::str_to_deque(BAD_REQUEST_STR);
 
-class transfer_data
+class client_data
 {
 public:
-    transfer_data &operator=(transfer_data const&) = delete;
-    transfer_data(transfer_data const&) = delete;
-    transfer_data &operator=(transfer_data&&) = delete;
-    transfer_data(transfer_data&&) = delete;
+    client_data &operator=(client_data const&) = delete;
+    client_data(client_data const&) = delete;
+    client_data &operator=(client_data&&) = delete;
+    client_data(client_data&&) = delete;
 
-    transfer_data(sockfd cfd, epoll_handler *efd);
+    client_data(sockfd cfd, epoll_handler *efd);
     void data_occured(int fd);
     int get_client_infd();
 private:

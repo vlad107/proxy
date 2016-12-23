@@ -1,6 +1,6 @@
-#include "transfer_data.h"
+#include "client_data.h"
 
-transfer_data::transfer_data(sockfd cfd, epoll_handler *efd)
+client_data::client_data(sockfd cfd, epoll_handler *efd)
     : efd(efd),
       client_infd(std::move(cfd)),
       client_outfd(client_infd.dup()),
@@ -11,12 +11,12 @@ transfer_data::transfer_data(sockfd cfd, epoll_handler *efd)
     tcp_helper::make_nonblocking(client_infd.getd());
 }
 
-int transfer_data::get_client_infd()
+int client_data::get_client_infd()
 {
     return client_infd.getd();
 }
 
-void transfer_data::return_response(std::deque<char> http_response)
+void client_data::return_response(std::deque<char> http_response)
 {
     if (response_buffer.empty())
     {
@@ -42,7 +42,7 @@ void transfer_data::return_response(std::deque<char> http_response)
     response_buffer.add_chunk(http_response);
 }
 
-void transfer_data::response_occured(const std::string &host, std::deque<char> response)
+void client_data::response_occured(const std::string &host, std::deque<char> response)
 {
     hosts[host]->add_response(response);
     while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
@@ -53,7 +53,7 @@ void transfer_data::response_occured(const std::string &host, std::deque<char> r
     }
 }
 
-void transfer_data::data_occured(int fd)
+void client_data::data_occured(int fd)
 {
     std::cerr << "data_ocured on " << fd << std::endl;
     auto _tmp = tcp_helper::read_all(fd);
