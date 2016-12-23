@@ -96,3 +96,9 @@ std::string tcp_helper::normalize(std::string s)
     return s;
 }
 
+std::deque<char> tcp_helper::str_to_deque(std::string s)
+{
+    std::deque<char> result;
+    for (char c : s) result.push_back(c);
+    return result;
+}

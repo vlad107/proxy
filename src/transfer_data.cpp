@@ -359,7 +359,14 @@ void transfer_data::data_occured(int fd)
                     } catch (...)
                     {
                         std::cerr << "BAD REQUEST" << std::endl;
+//                        efd->add_deleter([this]()
+//                        {
+//                            return_response(BAD_REQUEST);
+//                        });
+
                         iter->bad_request();
+
+//                        return_response(BAD_REQUEST);
                     }
                     iter->notify();
                 };
