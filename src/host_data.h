@@ -20,6 +20,7 @@ class host_data
     std::function<void()> disconnect_handler;
     std::function<void(int)> response_handler;
     bool _started;
+    bool _closed;
 
     std::mutex _mutex;
     std::condition_variable cond;

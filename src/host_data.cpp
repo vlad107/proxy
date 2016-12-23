@@ -6,7 +6,8 @@ host_data::host_data(epoll_handler *efd,
     : efd(efd),
       disconnect_handler(disconnect_handler),
       response_handler(response_handler),
-      _started(false)
+      _started(false),
+      _closed(false)
 {
 }
 
@@ -32,7 +33,7 @@ void host_data::bad_request()
 
 void host_data::close()
 {
-    _started = false;
+    _closed = true;
 }
 
 bool host_data::started()

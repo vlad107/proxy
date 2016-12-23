@@ -38,7 +38,6 @@ std::deque<char> http_buffer::extract_front_http(const http_parser &header)
     assert(_was_header_end);
     size_t content_length = header.get_content_length();
     size_t idx;
-    std::cerr << "content-length = " << content_length << std::endl;
     if (content_length == CHUNKED)
     {
         idx = body_end_idx + 1;
@@ -57,10 +56,6 @@ std::deque<char> http_buffer::extract_front_http(const http_parser &header)
 
 void http_buffer::add_chunk(std::deque<char> s)
 {
-    std::cerr << "++++" << std::endl;
-    std::string temp(data.begin(), data.end());
-    std::cerr << temp << std::endl;
-    std::cerr << "----" << std::endl;
     data.insert(data.end(), s.begin(), s.end());
     for (size_t i = data.size() - s.size(); (i < data.size()); i++)
     {
@@ -113,8 +108,6 @@ size_t http_buffer::size()
 std::string http_buffer::get_header()
 {
     assert(_was_header_end);
-    std::cerr << "header_end_idx = " << header_end_idx << std::endl;
-    std::cerr << "size = " << data.size() << std::endl;
     std::string result(data.begin(), data.begin() + header_end_idx + 1);
     return std::string(data.begin(), data.begin() + header_end_idx + 1);
 }
