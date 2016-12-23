@@ -142,11 +142,11 @@ bool http_buffer::write_all(int fd)
 host_data::host_data(epoll_handler *_efd,
                      std::function<void()> _disconnect_handler,
                      std::function<void(int)> _response_handler)
+    : _started(false),
+      disconnect_handler(_disconnect_handler),
+      response_handler(_response_handler),
+      efd(_efd)
 {
-    _started = false;
-    disconnect_handler = _disconnect_handler;
-    response_handler = _response_handler;
-    efd = _efd;
     buffer_in = std::make_unique<http_buffer>();
     buffer_out = std::make_unique<http_buffer>();
     response_header = std::make_unique<http_parser>();
