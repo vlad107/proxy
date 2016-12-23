@@ -132,7 +132,7 @@ bool http_buffer::write_all(int fd)
             data.erase(data.begin(), data.begin() + _write);
         } else if (_write < 0)
         {
-            if (errno == EINTR) continue;
+            if ((errno == EINTR) || (errno == EPIPE)) continue;
             throw std::runtime_error("error in write():\n" + std::string(strerror(errno)));
         } else break;
     }
@@ -148,7 +148,8 @@ host_data::host_data(epoll_handler *_efd,
       efd(_efd),
       buffer_in(),
       buffer_out(),
-      response_header()
+      response_header(),
+      _error_occured(false)
 {
 }
 
@@ -169,6 +170,12 @@ void host_data::notify()
 void host_data::bad_request()
 {
     _started = true;
+    _error_occured = true;
+}
+
+bool host_data::error_occured()
+{
+    return _error_occured;
 }
 
 void host_data::start_on_socket(sockfd host_socket)
@@ -283,7 +290,6 @@ int transfer_data::get_client_infd()
 
 void transfer_data::return_response(std::deque<char> http_response)
 {
-    std::cerr << "return response..." << std::endl;
     if (response_buffer.empty())
     {
         response_event = std::make_shared<event_registration>(efd,
@@ -337,6 +343,10 @@ void transfer_data::data_occured(int fd)
             std::deque<char> req = client_buffer.extract_front_http(body_len);
             request_header.clear();
             result_q.push(host);
+            if ((hosts.count(host) != 0) && (hosts[host]->error_occured()))
+            {
+                hosts.erase(host);
+            }
             if (hosts.count(host) == 0)
             {
                 hosts[host] = std::make_unique<host_data>(
@@ -366,6 +376,10 @@ void transfer_data::data_occured(int fd)
                     {
                         std::cerr << "BAD REQUEST" << std::endl;
                         iter->bad_request();
+                        efd->add_deleter([this, host]()
+                        {
+                            response_occured(host, BAD_REQUEST);
+                        });
                     }
                     iter->notify();
                 });

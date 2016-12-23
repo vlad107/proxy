@@ -61,6 +61,7 @@ class host_data
     std::shared_ptr<event_registration> request_event;
     void activate_request_handler();
     bool _started;
+    bool _error_occured;
 public:
     host_data &operator=(host_data const&) = delete;
     host_data(host_data const&) = delete;
@@ -76,6 +77,7 @@ public:
     std::deque<char> extract_response();
     bool available_response();
     void start_on_socket(sockfd host_socket);
+    bool error_occured();
 
     void debug_response()
     {
