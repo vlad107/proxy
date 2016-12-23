@@ -11,7 +11,7 @@
 
 class server_socket
 {
-    std::unique_ptr<sockfd> sfd;
+    sockfd sfd;
     static const int BACKLOG = 32;
 public:
     server_socket &operator=(server_socket const&) = delete;
