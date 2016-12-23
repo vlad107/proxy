@@ -13,26 +13,26 @@ const std::string BODY_END = "0\r\n\r\n";
 class http_parser
 {
 public:
-    enum VERSION {HTTPS, HTTP10, HTTP11};
-    enum DIRECTION {REQUEST, RESPONSE};
-    enum REQUEST_TYPE {GET, POST};
+    enum Version {HTTPS, HTTP10, HTTP11};
+    enum Direction {REQUEST, RESPONSE};
+    enum RequestType {GET, POST};
     http_parser();
     bool empty();
-    void parse_header(std::string header, DIRECTION dir);
+    void parse_header(std::string header, Direction dir);
     void clear();
     size_t get_content_length() const;
-    VERSION get_ver() const;
+    Version get_ver() const;
     std::string get_host() const;
 private:
     int response_code;
-    VERSION extract_version(std::string);
-    REQUEST_TYPE request_type;
+    Version extract_version(std::string);
+    RequestType request_type;
     std::map<std::string, std::string> header_items;
     bool is_empty;
     std::string get_item(std::string name) const;
     bool _is_https;
-    VERSION ver;
-    DIRECTION dir;
+    Version ver;
+    Direction dir;
 };
 
 #endif // HTTP_PARSER_H

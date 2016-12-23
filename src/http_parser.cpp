@@ -21,43 +21,43 @@ std::string http_parser::get_item(std::string name) const
     return header_items.find(name)->second;
 }
 
-http_parser::VERSION http_parser::get_ver() const
+http_parser::Version http_parser::get_ver() const
 {
     return ver;
 }
 
-http_parser::VERSION http_parser::extract_version(std::string line)
+http_parser::Version http_parser::extract_version(std::string line)
 {
     if (line.find("HTTPS") != std::string::npos)
     {
-        return  VERSION::HTTPS;
+        return  Version::HTTPS;
     } else if (line.find("HTTP/1.0") != std::string::npos)
     {
-        return VERSION::HTTP10;
+        return Version::HTTP10;
     } else if (line.find("HTTP/1.1") != std::string::npos)
     {
-        return VERSION::HTTP11;
+        return Version::HTTP11;
     } else assert(false); // todo: ver = other should be here
 }
 
-void http_parser::parse_header(std::string header, http_parser::DIRECTION dir)
+void http_parser::parse_header(std::string header, http_parser::Direction dir)
 {
     std::stringstream in(header);
     std::string line;
     getline(in, line); // type of request/response first line with version of HTTP
     header_items.clear();
     is_empty = false;
-    dir = line.find("HTTP") == 0 ? DIRECTION::RESPONSE : DIRECTION::REQUEST;
+    dir = line.find("HTTP") == 0 ? Direction::RESPONSE : Direction::REQUEST;
     ver = extract_version(line);
-    if (dir == DIRECTION::RESPONSE)
+    if (dir == Direction::RESPONSE)
     {
         line.erase(0, line.find(" "));
         response_code = std::stoi(line);
         std::cerr << "RESPONSE CODE = " << response_code << std::endl;
     }
-    if (dir == DIRECTION::REQUEST)
+    if (dir == Direction::REQUEST)
     {
-        request_type = (line.find("GET") != std::string::npos) ? REQUEST_TYPE::GET : REQUEST_TYPE::POST;
+        request_type = (line.find("GET") != std::string::npos) ? RequestType::GET : RequestType::POST;
     }
     while (getline(in, line))
     {
@@ -82,12 +82,12 @@ void http_parser::clear()
 
 size_t http_parser::get_content_length() const
 {
-    if ((dir == DIRECTION::RESPONSE) &&
+    if ((dir == Direction::RESPONSE) &&
         (((100 <= response_code) && (response_code <= 199)) || (response_code == 204) || (response_code == 304)))
     {
         return 0;
     }
-    if ((dir == DIRECTION::REQUEST) && (request_type == REQUEST_TYPE::GET))
+    if ((dir == Direction::REQUEST) && (request_type == RequestType::GET))
     {
         return 0; // TODO: not always, but very often
     }

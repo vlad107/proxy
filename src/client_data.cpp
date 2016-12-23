@@ -58,8 +58,8 @@ void client_data::data_occured(int fd)
     {
         if (request_header.empty())
         {
-            request_header.parse_header(request_buffer.get_header(), http_parser::DIRECTION::REQUEST);
-            assert(request_header.get_ver() != http_parser::VERSION::HTTPS);
+            request_header.parse_header(request_buffer.get_header(), http_parser::Direction::REQUEST);
+            assert(request_header.get_ver() != http_parser::Version::HTTPS);
         }
         if (request_buffer.available_body(request_header))
         {

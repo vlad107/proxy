@@ -122,7 +122,7 @@ bool host_data::available_response()
     {
         if (response_header.empty())
         {
-            response_header.parse_header(buffer_out.get_header(), http_parser::DIRECTION::RESPONSE);
+            response_header.parse_header(buffer_out.get_header(), http_parser::Direction::RESPONSE);
         }
         return buffer_out.available_body(response_header);
     }
