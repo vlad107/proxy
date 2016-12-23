@@ -294,7 +294,7 @@ transfer_data::transfer_data(sockfd cfd, epoll_handler *efd)
     : efd(efd),
       client_infd(std::move(cfd)),
       client_outfd(client_infd.dup()),
-      client_buffer(),
+      request_buffer(),
       request_header(),
       response_buffer()
 {
@@ -347,18 +347,18 @@ void transfer_data::data_occured(int fd)
 {
     std::cerr << "data_ocured on " << fd << std::endl;
     auto _tmp = tcp_helper::read_all(fd);
-    client_buffer.add_chunk(_tmp);
-    while (client_buffer.header_available())
+    request_buffer.add_chunk(_tmp);
+    while (request_buffer.header_available())
     {
         if (request_header.empty())
         {
-            request_header.parse_header(client_buffer.get_header());
+            request_header.parse_header(request_buffer.get_header());
         }
         int body_len = request_header.get_content_len();
-        if (client_buffer.available_body(body_len, false))
+        if (request_buffer.available_body(body_len, false))
         {
             std::string host(tcp_helper::normalize(request_header.get_host()));
-            std::deque<char> req = client_buffer.extract_front_http(body_len, false);
+            std::deque<char> req = request_buffer.extract_front_http(body_len, false);
             if (request_header.is_https())
             {
                 assert(false);

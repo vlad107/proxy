@@ -106,7 +106,7 @@ private:
     sockfd client_outfd;
 
     http_parser request_header;
-    http_buffer client_buffer;
+    http_buffer request_buffer;
     http_buffer response_buffer;
     std::unordered_map<std::string, std::unique_ptr<host_data>> hosts;
 
