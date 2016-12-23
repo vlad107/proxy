@@ -22,7 +22,7 @@ void connection::start()
                                        EPOLLIN | EPOLLRDHUP,
                                        [this](int _fd, int _event)
     {
-        assert((_event & (EPOLLIN | EPOLLRDHUP)) == 0); // available for reading and closed simultaniously
+        assert(((_event & EPOLLIN) == 0) || ((_event & EPOLLRDHUP) == 0)); // available for reading and closed simultaniously
         if (_event & EPOLLIN)
         {
             data.data_occured(_fd);
