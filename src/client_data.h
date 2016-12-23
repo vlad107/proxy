@@ -29,19 +29,20 @@ public:
     client_data(client_data&&) = delete;
 
     client_data(sockfd cfd, epoll_handler *efd);
+
     void data_occured(int fd);
     int get_client_infd();
 private:
-    std::shared_ptr<event_registration> response_event;
-    std::queue<std::string> result_q;
     epoll_handler *efd;
     sockfd client_infd;
     sockfd client_outfd;
-
-    http_parser request_header;
     http_buffer request_buffer;
+    http_parser request_header;
     http_buffer response_buffer;
+    std::queue<std::string> result_q;
     std::unordered_map<std::string, std::unique_ptr<host_data>> hosts;
+
+    std::shared_ptr<event_registration> response_event;
 
     void return_response(std::deque<char>);
     void response_occured(const std::string &, std::deque<char>);

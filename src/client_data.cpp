@@ -3,10 +3,7 @@
 client_data::client_data(sockfd cfd, epoll_handler *efd)
     : efd(efd),
       client_infd(std::move(cfd)),
-      client_outfd(client_infd.dup()),
-      request_buffer(),
-      request_header(),
-      response_buffer()
+      client_outfd(client_infd.dup())
 {
     tcp_helper::make_nonblocking(client_infd.getd());
 }
@@ -56,8 +53,7 @@ void client_data::response_occured(const std::string &host, std::deque<char> res
 void client_data::data_occured(int fd)
 {
     std::cerr << "data_ocured on " << fd << std::endl;
-    auto _tmp = tcp_helper::read_all(fd);
-    request_buffer.add_chunk(_tmp);
+    request_buffer.add_chunk(tcp_helper::read_all(fd));
     while (request_buffer.header_available())
     {
         if (request_header.empty())
