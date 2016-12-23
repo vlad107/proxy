@@ -12,7 +12,7 @@ class connection
     bool _was_disconnect_handler;
     transfer_data data;
     std::function<void()> disconnect_handler;
-    std::unique_ptr<event_registration> reg;
+    event_registration reg;
 public:
     connection(connection const &) = delete;
     connection(connection&&) = delete;

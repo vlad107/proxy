@@ -16,7 +16,7 @@ void connection::set_disconnect(std::function<void ()> disconnect_handler)
 void connection::start()
 {
     assert(_was_disconnect_handler);
-    reg = std::make_unique<event_registration>(efd,
+    reg = std::move(event_registration(efd,
                                                data.get_client_infd(),
                                                EPOLLIN | EPOLLRDHUP,
                                                [this](int _fd, int _event)
@@ -32,5 +32,5 @@ void connection::start()
             _event ^= EPOLLRDHUP;
         }
         return _event;
-    });
+    }));
 }
