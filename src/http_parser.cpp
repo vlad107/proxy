@@ -90,7 +90,6 @@ void http_parser::parse_header(std::string header, http_parser::Direction dir)
 
 size_t http_parser::get_content_length() const
 {
-    std::cerr << dir << ", " << response_code << std::endl;
     if ((dir == Direction::RESPONSE) &&
         (((100 <= response_code) && (response_code <= 199)) || (response_code == 204) || (response_code == 304)))
     {
@@ -112,8 +111,8 @@ size_t http_parser::get_content_length() const
     {
         try
         {
-            std::string encoding = get_item("Transfer-Encoding"); // TODO: rename get_header_item
-            if (encoding.find("identity") != std::string::npos)
+            std::string encoding = get_item("Transfer-Encoding");
+            if (encoding.find("identity") == std::string::npos)
             {
                 return CHUNKED;
             }
@@ -123,7 +122,6 @@ size_t http_parser::get_content_length() const
             try
             {
                 std::string length = get_item("Content-Length");
-                std::cerr << "Content-Length = " << length << std::endl;
                 return std::stoi(length);
             } catch (...)
             {

@@ -53,6 +53,9 @@ void client_data::response_occured(const std::string &host, const std::deque<cha
 
 void client_data::request_occured(const std::string & host, const std::deque<char> & req)
 {
+//    std::string tmp(req.begin(), req.end());
+//    std::cout << tmp << std::endl;
+//    std::cout << "=====" << std::endl;
     if (hosts.count(host) == 0)
     {
         auto deleter_handler = [this, host]()
