@@ -3,13 +3,10 @@
 host_data::host_data(epoll_handler *_efd,
                      std::function<void()> _disconnect_handler,
                      std::function<void(int)> _response_handler)
-    : _started(false),
+    : efd(_efd),
       disconnect_handler(_disconnect_handler),
       response_handler(_response_handler),
-      efd(_efd),
-      buffer_in(),
-      buffer_out(),
-      response_header(),
+      _started(false),
       _closed(false)
 {
 }
@@ -56,10 +53,11 @@ void host_data::start_on_socket(sockfd host_socket)
     }
     server_fdin = std::move(sockfd(tmpfd));
     tcp_helper::make_nonblocking(server_fdin.getd());
-    response_event = std::make_unique<event_registration>(efd,
-                                               server_fdin.getd(),
-                                               EPOLLIN | EPOLLRDHUP,
-                                               [this](int _fd, int _event)
+    response_event = std::move(
+                event_registration(efd,
+                                   server_fdin.getd(),
+                                   EPOLLIN | EPOLLRDHUP,
+                                   [this](int _fd, int _event)
     {
         if (_event & EPOLLRDHUP)
         {
@@ -71,7 +69,7 @@ void host_data::start_on_socket(sockfd host_socket)
             _event ^= EPOLLIN;
         }
         return _event;
-    });
+    }));
     if (!buffer_in.empty())
     {
         activate_request_handler();

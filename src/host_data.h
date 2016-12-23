@@ -16,6 +16,12 @@
 
 class host_data
 {
+    epoll_handler *efd;
+    std::function<void()> disconnect_handler;
+    std::function<void(int)> response_handler;
+    bool _started;
+    bool _closed;
+
     std::mutex _mutex;
     std::condition_variable cond;
     http_buffer buffer_in;
@@ -23,14 +29,9 @@ class host_data
     http_parser response_header;
     sockfd server_fdin;
     sockfd server_fdout;
-    std::function<void()> disconnect_handler;
-    std::function<void(int)> response_handler;
-    epoll_handler *efd;
-    std::unique_ptr<event_registration> response_event;
+    event_registration response_event;
     std::shared_ptr<event_registration> request_event;
     void activate_request_handler();
-    bool _started;
-    bool _closed;
 public:
     host_data &operator=(host_data const&) = delete;
     host_data(host_data const&) = delete;
