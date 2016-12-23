@@ -24,9 +24,7 @@ void epoll_handler::loop()
     struct epoll_event evs[MAX_EVENTS];
     while (!term)
     {
-//        std::cerr << "============================ new iteration ============================" << std::endl;
         for (auto deleter : deleters) deleter();
-//        std::cerr << "executed " << deleters.size() << " deleters" << std::endl;
         deleters.clear();
         int ev_sz;
         if ((ev_sz = epoll_wait(efd, evs, MAX_EVENTS, 100)) < 0)
@@ -42,7 +40,7 @@ void epoll_handler::loop()
         {
             if (evs[i].events & (EPOLLERR | EPOLLHUP))
             {
-                evs[i].events |= EPOLLRDHUP; // todo: some error? let's just remove it. very strange
+                throw std::runtime_error("error occured for some event in epoll");
             }
             int fd = evs[i].data.fd;
             if (events.count(fd) == 0)
@@ -51,11 +49,7 @@ void epoll_handler::loop()
                 assert(events.count(fd) != 0);
             }
             auto cur_handler = events[fd];
-            int rem = cur_handler(fd, evs[i].events);
-            if (rem & EPOLLRDHUP)
-            {
-                std::cerr << "error in epoll" << std::endl;
-            }
+            cur_handler(fd, evs[i].events);
         }
     }
 }
