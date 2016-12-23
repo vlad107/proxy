@@ -49,9 +49,9 @@ class host_data
 {
     std::mutex _mutex;
     std::condition_variable cond;
-    std::unique_ptr<http_buffer> buffer_in;
-    std::unique_ptr<http_buffer> buffer_out;
-    std::unique_ptr<http_parser> response_header;
+    http_buffer buffer_in;
+    http_buffer buffer_out;
+    http_parser response_header;
     sockfd server_fdin;
     sockfd server_fdout;
     std::function<void()> disconnect_handler;
@@ -79,7 +79,7 @@ public:
 
     void debug_response()
     {
-        buffer_out->debug_write();
+        buffer_out.debug_write();
     }
 };
 

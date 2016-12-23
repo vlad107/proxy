@@ -145,11 +145,11 @@ host_data::host_data(epoll_handler *_efd,
     : _started(false),
       disconnect_handler(_disconnect_handler),
       response_handler(_response_handler),
-      efd(_efd)
+      efd(_efd),
+      buffer_in(),
+      buffer_out(),
+      response_header()
 {
-    buffer_in = std::make_unique<http_buffer>();
-    buffer_out = std::make_unique<http_buffer>();
-    response_header = std::make_unique<http_parser>();
 }
 
 host_data::~host_data()
@@ -199,7 +199,7 @@ void host_data::start_on_socket(sockfd host_socket)
         }
         return _event;
     });
-    if (!buffer_in->empty())
+    if (!buffer_in.empty())
     {
         activate_request_handler();
     }
@@ -215,7 +215,7 @@ void host_data::activate_request_handler()
     {
         if (_event & EPOLLOUT)
         {
-            if (buffer_in->write_all(_fd))
+            if (buffer_in.write_all(_fd))
             {
                 efd->add_deleter([this]()
                 {
@@ -231,38 +231,38 @@ void host_data::activate_request_handler()
 
 void host_data::add_request(std::deque<char> req)
 {
-    if ((_started) && (buffer_in->empty()))
+    if ((_started) && (buffer_in.empty()))
     {
         activate_request_handler();
     }
-    buffer_in->add_chunk(req);
+    buffer_in.add_chunk(req);
 }
 
 bool host_data::available_response()
 {
-    if (buffer_out->header_available())
+    if (buffer_out.header_available())
     {
-        if (response_header->empty())
+        if (response_header.empty())
         {
-            response_header->parse_header(buffer_out->get_header());
+            response_header.parse_header(buffer_out.get_header());
         }
-        int body_len = response_header->get_content_len();
-        return buffer_out->available_body(body_len);
+        int body_len = response_header.get_content_len();
+        return buffer_out.available_body(body_len);
     }
     return false;
 }
 
 std::deque<char> host_data::extract_response()
 {
-    int body_len = response_header->get_content_len();
-    std::deque<char> result = buffer_out->extract_front_http(body_len);
-    response_header->clear();
+    int body_len = response_header.get_content_len();
+    std::deque<char> result = buffer_out.extract_front_http(body_len);
+    response_header.clear();
     return result;
 }
 
 void host_data::add_response(std::deque<char> resp)
 {
-    buffer_out->add_chunk(resp);
+    buffer_out.add_chunk(resp);
 }
 
 transfer_data::transfer_data(sockfd cfd, epoll_handler *efd)
