@@ -268,7 +268,7 @@ bool host_data::available_response()
     {
         if (response_header.empty())
         {
-            response_header.parse_header(buffer_out.get_header());
+            response_header.parse_header(buffer_out.get_header(), http_parser::DIRECTION::RESPONSE);
         }
         int body_len = response_header.get_content_len();
         return buffer_out.available_body(body_len, closed());
@@ -352,7 +352,7 @@ void transfer_data::data_occured(int fd)
     {
         if (request_header.empty())
         {
-            request_header.parse_header(request_buffer.get_header());
+            request_header.parse_header(request_buffer.get_header(), http_parser::DIRECTION::REQUEST);
         }
         int body_len = request_header.get_content_len();
         if (request_buffer.available_body(body_len, false))

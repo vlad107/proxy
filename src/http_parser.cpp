@@ -2,7 +2,8 @@
 
 http_parser::http_parser()
     : is_empty(true),
-      _is_https(false)
+      _is_https(false),
+      response_code(0)
 {
 }
 
@@ -30,23 +31,34 @@ http_parser::VERSION http_parser::get_ver()
     return ver;
 }
 
-void http_parser::parse_header(std::string header)
+http_parser::VERSION http_parser::extract_version(std::string line)
+{
+    if (line.find("HTTPS") != std::string::npos)
+    {
+        return  VERSION::HTTPS;
+    } else if (line.find("HTTP/1.0") != std::string::npos)
+    {
+        return VERSION::HTTP10;
+    } else if (line.find("HTTP/1.1") != std::string::npos)
+    {
+        return VERSION::HTTP11;
+    } else assert(false); // todo: ver = other should be here
+}
+
+void http_parser::parse_header(std::string header, http_parser::DIRECTION dir)
 {
     std::stringstream in(header);
     std::string line;
     getline(in, line); // type of request/response first line with version of HTTP
     header_items.clear();
     is_empty = false;
-    if (line.find("HTTPS") != std::string::npos)
+    ver = extract_version(line);
+    line.erase(0, line.find(" "));
+    if (dir == DIRECTION::RESPONSE)
     {
-        ver = VERSION::HTTPS;
-    } else if (line.find("HTTP/1.0") != std::string::npos)
-    {
-        ver = VERSION::HTTP10;
-    } else if (line.find("HTTP/1.1") != std::string::npos)
-    {
-        ver = VERSION::HTTP11;
-    } else assert(false); // todo: ver = other should be here
+        response_code = std::stoi(line);
+        std::cerr << "RESPONSE CODE = " << response_code << std::endl;
+    }
     while (getline(in, line))
     {
         int sep = line.find(": ");
