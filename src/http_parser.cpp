@@ -38,26 +38,30 @@ http_parser::Direction http_parser::get_dir() const
 
 http_parser::Version http_parser::extract_version(std::string line)
 {
+    std::cerr << "extract version from " << line << std::endl;
     if (line.find("HTTPS") != std::string::npos)
     {
-        return  Version::HTTPS;
-    } else if (line.find("HTTP/1.0") != std::string::npos)
+        return Version::HTTPS;
+    }
+    if (line.find("HTTP/1.0") != std::string::npos)
     {
         return Version::HTTP10;
-    } else if (line.find("HTTP/1.1") != std::string::npos)
+    }
+    if (line.find("HTTP/1.1") != std::string::npos)
     {
         return Version::HTTP11;
-    } else assert(false); // todo: ver = other should be here
+    }
+    assert(false); // todo: ver = other should be here
 }
 
 void http_parser::parse_header(std::string header, http_parser::Direction dir)
 {
+    this->dir = dir;
     std::stringstream in(header);
     std::string line;
     getline(in, line); // type of request/response first line with version of HTTP
     header_items.clear();
     _empty = false;
-    dir = line.find("HTTP") == 0 ? Direction::RESPONSE : Direction::REQUEST;
     ver = extract_version(line);
     if (dir == Direction::RESPONSE)
     {
@@ -86,6 +90,7 @@ void http_parser::parse_header(std::string header, http_parser::Direction dir)
 
 size_t http_parser::get_content_length() const
 {
+    std::cerr << dir << ", " << response_code << std::endl;
     if ((dir == Direction::RESPONSE) &&
         (((100 <= response_code) && (response_code <= 199)) || (response_code == 204) || (response_code == 304)))
     {
@@ -118,6 +123,7 @@ size_t http_parser::get_content_length() const
             try
             {
                 std::string length = get_item("Content-Length");
+                std::cerr << "Content-Length = " << length << std::endl;
                 return std::stoi(length);
             } catch (...)
             {

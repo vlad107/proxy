@@ -5,6 +5,18 @@ http_buffer::http_buffer()
     initialize();
 }
 
+void http_buffer::initialize()
+{
+    _was_header_end = false;
+    _was_body_end = false;
+    header_end_idx = -1;
+    body_end_idx = -1;
+    for (size_t i = 0; i < data.size(); i++)
+    {
+        update_char(i);
+    }
+}
+
 bool http_buffer::available_body(const http_parser &header, bool started)
 {
     assert(_was_header_end);
@@ -26,6 +38,7 @@ std::deque<char> http_buffer::extract_front_http(const http_parser &header)
     assert(_was_header_end);
     size_t content_length = header.get_content_length();
     size_t idx;
+    std::cerr << "content-length = " << content_length << std::endl;
     if (content_length == CHUNKED)
     {
         idx = body_end_idx + 1;
@@ -38,23 +51,16 @@ std::deque<char> http_buffer::extract_front_http(const http_parser &header)
     }
     std::deque<char> result(data.begin(), data.begin() + idx);
     data.erase(data.begin(), data.begin() + idx);
+    initialize();
     return result;
-}
-
-void http_buffer::initialize()
-{
-    _was_header_end = false;
-    _was_body_end = false;
-    header_end_idx = -1;
-    body_end_idx = -1;
-    for (size_t i = 0; i < data.size(); i++)
-    {
-        update_char(i);
-    }
 }
 
 void http_buffer::add_chunk(std::deque<char> s)
 {
+    std::cerr << "++++" << std::endl;
+    std::string temp(data.begin(), data.end());
+    std::cerr << temp << std::endl;
+    std::cerr << "----" << std::endl;
     data.insert(data.end(), s.begin(), s.end());
     for (size_t i = data.size() - s.size(); (i < data.size()); i++)
     {
@@ -69,7 +75,8 @@ bool http_buffer::header_available()
 
 bool http_buffer::equals(size_t idx, const std::string s)
 {
-    size_t beg = 1 + idx >= s.size() ? 1 + idx - s.size() : 0;
+    assert(idx < data.size());
+    size_t beg = 1 + idx >= s.size() ? (1 + idx - s.size()) : 0;
     std::string cur(data.begin() + beg, data.begin() + idx + 1);
     return cur == s;
 }
@@ -106,6 +113,9 @@ size_t http_buffer::size()
 std::string http_buffer::get_header()
 {
     assert(_was_header_end);
+    std::cerr << "header_end_idx = " << header_end_idx << std::endl;
+    std::cerr << "size = " << data.size() << std::endl;
+    std::string result(data.begin(), data.begin() + header_end_idx + 1);
     return std::string(data.begin(), data.begin() + header_end_idx + 1);
 }
 

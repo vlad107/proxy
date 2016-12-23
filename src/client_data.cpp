@@ -109,6 +109,7 @@ void client_data::data_occured(int fd)
     request_buffer.add_chunk(tcp_helper::read_all(fd));
     while (request_buffer.header_available())
     {
+        std::cerr << "NEW REQUEST HEADER AVAILABLE" << std::endl;
         if (request_header.empty())
         {
             request_header.parse_header(request_buffer.get_header(), http_parser::Direction::REQUEST);
