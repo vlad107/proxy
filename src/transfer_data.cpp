@@ -268,11 +268,11 @@ void host_data::add_response(std::deque<char> resp)
 transfer_data::transfer_data(sockfd cfd, epoll_handler *efd)
     : efd(efd),
       client_infd(std::move(cfd)),
-      client_outfd(client_infd.dup())
+      client_outfd(client_infd.dup()),
+      client_buffer(),
+      request_header(),
+      response_buffer()
 {
-    client_buffer = std::make_unique<http_buffer>();
-    request_header = std::make_unique<http_parser>();
-    response_buffer = std::make_unique<http_buffer>();
     tcp_helper::make_nonblocking(client_infd.getd());
 }
 
@@ -284,7 +284,7 @@ int transfer_data::get_client_infd()
 void transfer_data::return_response(std::deque<char> http_response)
 {
     std::cerr << "return response..." << std::endl;
-    if (response_buffer->empty())
+    if (response_buffer.empty())
     {
         response_event = std::make_shared<event_registration>(efd,
                                                               client_outfd.getd(),
@@ -293,7 +293,7 @@ void transfer_data::return_response(std::deque<char> http_response)
         {
             if (_event & EPOLLOUT) // todo: how to write it like a cool guy?
             {
-                if (response_buffer->write_all(_fd))
+                if (response_buffer.write_all(_fd))
                 {
                     efd->add_deleter([&]()
                     {
@@ -305,27 +305,27 @@ void transfer_data::return_response(std::deque<char> http_response)
             return _event;
         });
     }
-    response_buffer->add_chunk(http_response);
+    response_buffer.add_chunk(http_response);
 }
 
 void transfer_data::data_occured(int fd)
 {
     std::cerr << "data_ocured on " << fd << std::endl;
     auto _tmp = tcp_helper::read_all(fd);
-    client_buffer->add_chunk(_tmp);
-    while (client_buffer->header_available())
+    client_buffer.add_chunk(_tmp);
+    while (client_buffer.header_available())
     {
-        if (request_header->empty())
+        if (request_header.empty())
         {
-            request_header->parse_header(client_buffer->get_header());
+            request_header.parse_header(client_buffer.get_header());
         }
-        int body_len = request_header->get_content_len();
-        std::string host = request_header->get_host();
-        if (client_buffer->available_body(body_len))
+        int body_len = request_header.get_content_len();
+        std::string host = request_header.get_host();
+        if (client_buffer.available_body(body_len))
         {
-            request_header->clear();
+            request_header.clear();
 
-            std::deque<char> req = client_buffer->extract_front_http(body_len);
+            std::deque<char> req = client_buffer.extract_front_http(body_len);
             host = tcp_helper::normalize(host);
             result_q.push(host);
             if (hosts.count(host) == 0)

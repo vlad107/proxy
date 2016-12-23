@@ -100,10 +100,10 @@ private:
     epoll_handler *efd;
     sockfd client_infd;
     sockfd client_outfd;
-    std::unique_ptr<http_parser> request_header;
 
-    std::unique_ptr<http_buffer> client_buffer;
-    std::unique_ptr<http_buffer> response_buffer;
+    http_parser request_header;
+    http_buffer client_buffer;
+    http_buffer response_buffer;
     std::unordered_map<std::string, std::unique_ptr<host_data>> hosts;
 
     void return_response(std::deque<char>);
