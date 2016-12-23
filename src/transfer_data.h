@@ -40,7 +40,7 @@ public:
     bool empty();
     void debug_write();
     bool write_all(int fd);
-    bool available_body(int body_len);
+    bool available_body(int body_len, bool closed);
     std::string get_header();
     std::deque<char> extract_front_http(int body_len);
 };
@@ -78,6 +78,7 @@ public:
     bool available_response();
     void start_on_socket(sockfd host_socket);
     bool closed();
+    void close();
 
     void debug_response()
     {

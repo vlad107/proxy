@@ -11,14 +11,14 @@ void http_buffer::debug_write()
     std::cerr << "data(" << s.size() << "):\n=====" << s << "\n=====" << std::endl;
 }
 
-bool http_buffer::available_body(int body_len)
+bool http_buffer::available_body(int body_len, bool closed)
 {
     if (body_len != -1)
     {
         return (_was_header_end) && ((size() - header_end_idx) >= body_len);
     } else
     {
-        return _was_body_end;
+        return _was_body_end | closed;
     }
 }
 
@@ -170,6 +170,11 @@ void host_data::notify()
 void host_data::bad_request()
 {
     _started = true;
+    close();
+}
+
+void host_data::close()
+{
     _closed = true;
 }
 
@@ -254,7 +259,7 @@ bool host_data::available_response()
             response_header.parse_header(buffer_out.get_header());
         }
         int body_len = response_header.get_content_len();
-        return buffer_out.available_body(body_len);
+        return buffer_out.available_body(body_len, closed());
     }
     return false;
 }
@@ -341,7 +346,7 @@ void transfer_data::data_occured(int fd)
             request_header.parse_header(client_buffer.get_header());
         }
         int body_len = request_header.get_content_len();
-        if (client_buffer.available_body(body_len))
+        if (client_buffer.available_body(body_len, false))
         {
             std::string host(tcp_helper::normalize(request_header.get_host()));
             std::deque<char> req = client_buffer.extract_front_http(body_len);
@@ -361,12 +366,16 @@ void transfer_data::data_occured(int fd)
                             efd,
                             [this, host]()
                 {
-                    hosts.erase(host);
+                    hosts[host]->close();
                 },
                             [this, host](int ffd)
                 {
                     std::deque<char> response = tcp_helper::read_all(ffd);
                     response_occured(host, response);
+                    if (hosts[host]->closed())
+                    {
+                        hosts.erase(host);
+                    }
                 });
 
                 auto &iter = hosts[host];
