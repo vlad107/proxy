@@ -15,12 +15,13 @@ class http_buffer
     std::deque<char> data;
     bool _was_header_end;
     bool _was_body_end;
-    int body_end_idx;
-    int header_end_idx;
+    size_t body_end_idx;
+    size_t header_end_idx;
     void initialize();
 
-    void update_char(int idx);
-    std::deque<char> substr(int from, int to);
+    void update_char(size_t idx);
+    std::deque<char> substr(size_t from, size_t to);
+    bool equals(size_t idx, const std::string s);
 public:
     http_buffer();
     void add_chunk(std::deque<char>);

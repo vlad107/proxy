@@ -21,6 +21,26 @@ bool http_buffer::available_body(const http_parser &header, bool started)
     return size() - header_end_idx >= content_length;
 }
 
+std::deque<char> http_buffer::extract_front_http(const http_parser &header)
+{
+    assert(_was_header_end);
+    size_t content_length = header.get_content_length();
+    size_t idx;
+    if (content_length == CHUNKED)
+    {
+        idx = body_end_idx + 1;
+    } else if (content_length == UNTIL_DISCONNECT)
+    {
+        idx = data.size();
+    } else
+    {
+        idx = header_end_idx + content_length + 1;
+    }
+    std::deque<char> result(data.begin(), data.begin() + idx);
+    data.erase(data.begin(), data.begin() + idx);
+    return result;
+}
+
 void http_buffer::initialize()
 {
     _was_header_end = false;
@@ -47,33 +67,32 @@ bool http_buffer::header_available()
     return _was_header_end;
 }
 
-void http_buffer::update_char(int idx)
+bool http_buffer::equals(size_t idx, const std::string s)
 {
-    if (!_was_body_end)
+    size_t beg = 1 + idx >= s.size() ? 1 + idx - s.size() : 0;
+    std::string cur(data.begin() + beg, data.begin() + idx + 1);
+    if (cur == s)
     {
-        int beg = std::max(0, 1 + idx - (int)BODY_END.size());
-        std::string cur(data.begin() + beg, data.begin() + idx + 1);
-        if (cur == BODY_END)
-        {
-            _was_body_end = true;
-            body_end_idx = idx;
-        }
-    }
-    if (!_was_header_end)
-    {
-        for (int i = 0; i < 2; i++) {
-            int beg = std::max(0, 1 + idx - (int)SEPARATORs[i].size());
-            std::string cur(data.begin() + beg, data.begin() + idx + 1);
-            if (cur == SEPARATORs[i])
-            {
-                _was_header_end = true;
-                header_end_idx = idx;
-            }
-        }
+        _was_body_end = true;
+        body_end_idx = idx;
     }
 }
 
-std::deque<char> http_buffer::substr(int from, int to)
+void http_buffer::update_char(size_t idx)
+{
+    if ((!_was_body_end) && (equals(idx, BODY_END)))
+    {
+        _was_body_end = true;
+        body_end_idx = idx;
+    }
+    if ((!_was_header_end) && (equals(idx, HEADER_END)))
+    {
+        _was_header_end = true;
+        header_end_idx = idx;
+    }
+}
+
+std::deque<char> http_buffer::substr(size_t from, size_t to)
 {
     if (!((0 <= from) && (from <= to) && (to <= data.size())))
     {
@@ -81,12 +100,6 @@ std::deque<char> http_buffer::substr(int from, int to)
     }
     std::deque<char> result(data.begin() + from, data.begin() + to);
     return result;
-}
-
-std::deque<char> http_buffer::extract_front_http(const http_parser &header)
-{
-    assert(_was_header_end);
-    assert(false);
 }
 
 size_t http_buffer::size()

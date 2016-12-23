@@ -8,7 +8,7 @@
 #define CHUNKED -1
 #define UNTIL_DISCONNECT -2
 
-const std::string SEPARATORs[2] = {"\r\n\r\n", "\n\n"}; // TODO: \n\n unnecessarily
+const std::string HEADER_END = "\r\n\r\n";
 const std::string BODY_END = "0\r\n\r\n";
 
 class http_parser

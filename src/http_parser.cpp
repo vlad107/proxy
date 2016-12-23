@@ -71,7 +71,7 @@ void http_parser::parse_header(std::string header, http_parser::Direction dir)
     }
     while (getline(in, line))
     {
-        int sep = line.find(": ");
+        size_t sep = line.find(": ");
         if (sep != std::string::npos)
         {
             std::string name = line.substr(0, sep);
