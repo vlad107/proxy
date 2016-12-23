@@ -128,9 +128,12 @@ bool http_buffer::write_all(int fd)
         for (int j = 0; j < len; j++) tmp[j] = data[j];
         int _write = ::send(fd, tmp, len, MSG_NOSIGNAL);
         if (_write > 0)
-        {            data.erase(data.begin(), data.begin() + _write);
+        {
+            data.erase(data.begin(), data.begin() + _write);
         } else if (_write < 0)
         {
+            if (errno == EINTR) continue;
+            throw std::runtime_error("error in write():\n" + std::string(strerror(errno)));
         } else break;
     }
     return data.empty();
@@ -166,7 +169,6 @@ void host_data::notify()
 void host_data::bad_request()
 {
     _started = true;
-    efd->add_deleter(disconnect_handler);
 }
 
 void host_data::start_on_socket(sockfd host_socket)
@@ -281,6 +283,7 @@ int transfer_data::get_client_infd()
 
 void transfer_data::return_response(std::deque<char> http_response)
 {
+    std::cerr << "return response..." << std::endl;
     if (response_buffer->empty())
     {
         response_event = std::make_shared<event_registration>(efd,
@@ -365,8 +368,6 @@ void transfer_data::data_occured(int fd)
 //                        });
 
                         iter->bad_request();
-
-//                        return_response(BAD_REQUEST);
                     }
                     iter->notify();
                 };
