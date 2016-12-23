@@ -11,6 +11,7 @@ class event_registration
 public:
     event_registration& operator=(const event_registration &)= delete;
     event_registration(const event_registration &) = delete;
+
     event_registration(event_registration&&);
     event_registration& operator=(event_registration&&);
 

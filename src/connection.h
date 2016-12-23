@@ -11,8 +11,8 @@ class connection
     epoll_handler *efd;
     bool _was_disconnect_handler;
     transfer_data data;
-    std::function<void()> disconnect_handler;
     event_registration reg;
+    std::function<void()> disconnect_handler;
 public:
     connection(connection const &) = delete;
     connection(connection&&) = delete;

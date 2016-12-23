@@ -21,8 +21,10 @@ event_registration::event_registration()
 
 event_registration::~event_registration()
 {
-    assert(fd != -1);
-    efd->rem_event(fd);
+    if (fd != -1)
+    {
+        efd->rem_event(fd);
+    }
 }
 
 event_registration& event_registration::operator=(event_registration &&other)

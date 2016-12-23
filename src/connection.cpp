@@ -3,7 +3,8 @@
 connection::connection(sockfd cfd, epoll_handler *efd)
     : efd(efd),
       _was_disconnect_handler(false),
-      data(std::move(cfd), efd)
+      data(std::move(cfd), efd),
+      reg()
 {
 }
 
@@ -17,9 +18,9 @@ void connection::start()
 {
     assert(_was_disconnect_handler);
     reg = std::move(event_registration(efd,
-                                               data.get_client_infd(),
-                                               EPOLLIN | EPOLLRDHUP,
-                                               [this](int _fd, int _event)
+                                       data.get_client_infd(),
+                                       EPOLLIN | EPOLLRDHUP,
+                                       [this](int _fd, int _event)
     {
         if (_event & EPOLLIN)
         {
