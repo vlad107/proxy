@@ -1,11 +1,11 @@
 #include "host_data.h"
 
-host_data::host_data(epoll_handler *_efd,
-                     std::function<void()> _disconnect_handler,
-                     std::function<void(int)> _response_handler)
-    : efd(_efd),
-      disconnect_handler(_disconnect_handler),
-      response_handler(_response_handler),
+host_data::host_data(epoll_handler *efd,
+                     std::function<void()> disconnect_handler,
+                     std::function<void(int)> response_handler)
+    : efd(efd),
+      disconnect_handler(disconnect_handler),
+      response_handler(response_handler),
       _started(false),
       _closed(false)
 {

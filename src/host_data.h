@@ -30,6 +30,7 @@ class host_data
     sockfd server_fdin;
     sockfd server_fdout;
     event_registration response_event;
+
     std::shared_ptr<event_registration> request_event;
     void activate_request_handler();
 public:
