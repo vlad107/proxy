@@ -14,8 +14,8 @@ class proxy_server
 {
     epoll_handler *efd;
     server_socket sfd;
-    std::set<std::unique_ptr<connection>> conns; // TODO: there is possibility to do it without set
     event_registration reg;
+    std::set<std::unique_ptr<connection>> conns; // TODO: there is possibility to do it without set
 public:
     proxy_server &operator=(proxy_server const&) = delete;
     proxy_server(proxy_server const&) = delete;

@@ -13,9 +13,12 @@ proxy_server::proxy_server(epoll_handler *efd, int port)
         sockfd cfd(sfd.accept(fd));
         auto conn = std::make_unique<connection>(std::move(cfd), efd);
         auto ptr = conns.insert(std::move(conn)).first;
-        (*ptr)->set_disconnect([this, ptr]()
+        (*ptr)->set_disconnect([this, ptr, efd]()
         {
-            conns.erase(ptr);
+            efd->add_deleter([this, ptr, efd]()
+            {
+                conns.erase(ptr);
+            });
         });
         (*ptr)->start();
         event ^= EPOLLIN;
