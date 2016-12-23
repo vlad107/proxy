@@ -20,7 +20,6 @@ class host_data
     std::function<void()> disconnect_handler;
     std::function<void(int)> response_handler;
     bool _started;
-    bool _closed;
 
     std::mutex _mutex;
     std::condition_variable cond;
@@ -41,21 +40,20 @@ public:
 
     host_data(epoll_handler *_efd, std::function<void()>, std::function<void(int)>);
     ~host_data();
+
+    bool available_response();
+    std::deque<char> extract_response();
+
+
     void notify();
     void bad_request();
     void add_request(std::deque<char> req);
     void add_response(std::deque<char> resp);
-    std::deque<char> extract_response();
-    bool available_response();
     void start_on_socket(sockfd host_socket);
-    bool closed();
+    bool started();
     void close();
     bool empty();
 
-    void debug_response()
-    {
-        buffer_out.debug_write();
-    }
 };
 
 #endif // HOST_DATA_H

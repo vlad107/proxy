@@ -17,12 +17,13 @@ void client_data::return_response(std::deque<char> http_response)
 {
     if (response_buffer.empty())
     {
+        // TODO: is shared_ptr bad here?
         response_event = std::make_shared<event_registration>(efd,
                                                               client_outfd.getd(),
                                                               EPOLLOUT,
                                                               [&](int _fd, int _event)
         {
-            if (_event & EPOLLOUT) // todo: how to write it like a cool guy?
+            if (_event & EPOLLOUT)
             {
                 if (response_buffer.write_all(_fd))
                 {
@@ -54,9 +55,7 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
 {
     if (hosts.count(host) == 0)
     {
-        hosts[host] = std::make_unique<host_data>(
-                    efd,
-                    [this, host]()
+        auto deleter_handler = [this, host]()
         {
             hosts[host]->close();
             response_occured(host, std::deque<char>());
@@ -64,16 +63,17 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
             {
                 hosts.erase(host);
             }
-        },
-                    [this, host](int ffd)
+        };
+        auto response_occured_handler = [this, host](int ffd)
         {
             std::deque<char> response = tcp_helper::read_all(ffd);
             response_occured(host, response);
-            if ((hosts[host]->empty()) && (hosts[host]->closed()))
+            if ((hosts[host]->empty()) && (!hosts[host]->started()))
             {
                 hosts.erase(host);
             }
-        });
+        };
+        hosts[host] = std::make_unique<host_data>(efd, deleter_handler, response_occured_handler);
 
         auto &iter = hosts[host];
         iter->add_request(req);
@@ -114,7 +114,7 @@ void client_data::data_occured(int fd)
             request_header.parse_header(request_buffer.get_header(), http_parser::Direction::REQUEST);
             assert(request_header.get_ver() != http_parser::Version::HTTPS);
         }
-        if (request_buffer.available_body(request_header))
+        if (request_buffer.available_body(request_header, false))
         {
             std::string host(tcp_helper::normalize(request_header.get_host()));
             std::deque<char> req = request_buffer.extract_front_http(request_header);

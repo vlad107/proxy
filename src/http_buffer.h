@@ -27,9 +27,8 @@ public:
     bool header_available();
     size_t size();
     bool empty();
-    void debug_write();
     bool write_all(int fd);
-    bool available_body(const http_parser & header);
+    bool available_body(const http_parser & header, bool started);
     std::string get_header();
     std::deque<char> extract_front_http(const http_parser &header);
 };

@@ -17,22 +17,25 @@ public:
     enum Direction {REQUEST, RESPONSE};
     enum RequestType {GET, POST};
     http_parser();
-    bool empty();
+
     void parse_header(std::string header, Direction dir);
     void clear();
+
+    bool empty() const;
     size_t get_content_length() const;
     Version get_ver() const;
+    Direction get_dir() const;
     std::string get_host() const;
 private:
+    bool _empty;
     int response_code;
-    Version extract_version(std::string);
     RequestType request_type;
-    std::map<std::string, std::string> header_items;
-    bool is_empty;
-    std::string get_item(std::string name) const;
-    bool _is_https;
     Version ver;
     Direction dir;
+    std::map<std::string, std::string> header_items;
+
+    Version extract_version(std::string);
+    std::string get_item(std::string name) const;
 };
 
 #endif // HTTP_PARSER_H

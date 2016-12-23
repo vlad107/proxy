@@ -1,15 +1,20 @@
 #include "http_parser.h"
 
 http_parser::http_parser()
-    : is_empty(true),
-      _is_https(false),
+    : _empty(true),
       response_code(0)
 {
 }
 
-bool http_parser::empty()
+void http_parser::clear()
 {
-    return is_empty;
+    _empty = true;
+    header_items.clear();
+}
+
+bool http_parser::empty() const
+{
+    return _empty;
 }
 
 std::string http_parser::get_item(std::string name) const
@@ -24,6 +29,11 @@ std::string http_parser::get_item(std::string name) const
 http_parser::Version http_parser::get_ver() const
 {
     return ver;
+}
+
+http_parser::Direction http_parser::get_dir() const
+{
+    return dir;
 }
 
 http_parser::Version http_parser::extract_version(std::string line)
@@ -46,7 +56,7 @@ void http_parser::parse_header(std::string header, http_parser::Direction dir)
     std::string line;
     getline(in, line); // type of request/response first line with version of HTTP
     header_items.clear();
-    is_empty = false;
+    _empty = false;
     dir = line.find("HTTP") == 0 ? Direction::RESPONSE : Direction::REQUEST;
     ver = extract_version(line);
     if (dir == Direction::RESPONSE)
@@ -72,12 +82,6 @@ void http_parser::parse_header(std::string header, http_parser::Direction dir)
             std::cerr << "Warning: suspicious line in header of HTTP-request: " << line << std::endl;
         }
     }
-}
-
-void http_parser::clear()
-{
-    is_empty = true;
-    header_items.clear();
 }
 
 size_t http_parser::get_content_length() const

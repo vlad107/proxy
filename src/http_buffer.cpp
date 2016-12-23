@@ -5,15 +5,9 @@ http_buffer::http_buffer()
     initialize();
 }
 
-void http_buffer::debug_write()
+bool http_buffer::available_body(const http_parser &header, bool started)
 {
-    std::string s(data.begin(), data.end());
-    std::cerr << "data(" << s.size() << "):\n=====" << s << "\n=====" << std::endl;
-}
-
-bool http_buffer::available_body(const http_parser &header)
-{
-    if (!_was_header_end) return false;
+    assert(_was_header_end);
     size_t content_length = header.get_content_length();
     if (content_length == RESPONSE_CHUNKED)
     {
@@ -21,7 +15,8 @@ bool http_buffer::available_body(const http_parser &header)
     }
     if (content_length == RESPONSE_UNTIL_END)
     {
-        assert(false);
+        assert(header.get_dir() == http_parser::Direction::RESPONSE); // TODO: if client is HTTP/1.0 then it's possible for request
+        return !started;
     }
     return size() - header_end_idx >= content_length;
 }

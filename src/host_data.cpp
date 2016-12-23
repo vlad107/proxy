@@ -6,8 +6,7 @@ host_data::host_data(epoll_handler *efd,
     : efd(efd),
       disconnect_handler(disconnect_handler),
       response_handler(response_handler),
-      _started(false),
-      _closed(false)
+      _started(false)
 {
 }
 
@@ -33,12 +32,12 @@ void host_data::bad_request()
 
 void host_data::close()
 {
-    _closed = true;
+    _started = false;
 }
 
-bool host_data::closed()
+bool host_data::started()
 {
-    return _closed;
+    return _started;
 }
 
 void host_data::start_on_socket(sockfd host_socket)
@@ -122,7 +121,7 @@ bool host_data::available_response()
         {
             response_header.parse_header(buffer_out.get_header(), http_parser::Direction::RESPONSE);
         }
-        return buffer_out.available_body(response_header);
+        return buffer_out.available_body(response_header, _started);
     }
     return false;
 }
