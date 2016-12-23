@@ -62,10 +62,8 @@ void epoll_handler::add_event(int fd, int mask, std::function<int(int, int)> han
     if (epoll_ctl(efd, EPOLL_CTL_ADD, fd, &ev) < 0)
     {
         throw std::runtime_error("error in epoll_ctl(EPOLL_CTL_ADD)\n" + std::string(strerror(errno)));
-    } else
-    {
-        events[fd] = handler;
     }
+    events[fd] = handler;
 }
 
 void epoll_handler::rem_event(int fd)
