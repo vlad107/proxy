@@ -13,8 +13,8 @@ extern volatile sig_atomic_t term;
 class proxy_server
 {
     epoll_handler *efd;
-    std::unique_ptr<server_socket> sfd;
-    std::set<std::unique_ptr<connection>> conns;
+    server_socket sfd;
+    std::set<std::unique_ptr<connection>> conns; // TODO: there is possibility to do it without set
     std::unique_ptr<event_registration> reg;
 public:
     proxy_server &operator=(proxy_server const&) = delete;
