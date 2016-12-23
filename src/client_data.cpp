@@ -39,7 +39,7 @@ void client_data::return_response(std::deque<char> http_response)
     response_buffer.add_chunk(http_response);
 }
 
-void client_data::response_occured(const std::string &host, std::deque<char> response)
+void client_data::response_occured(const std::string &host, const std::deque<char> & response)
 {
     hosts[host]->add_response(response);
     while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
@@ -50,7 +50,7 @@ void client_data::response_occured(const std::string &host, std::deque<char> res
     }
 }
 
-void client_data::request_occured(const std::string & host, std::deque<char> req)
+void client_data::request_occured(const std::string & host, const std::deque<char> & req)
 {
     if (hosts.count(host) == 0)
     {
@@ -118,9 +118,9 @@ void client_data::data_occured(int fd)
         {
             std::string host(tcp_helper::normalize(request_header.get_host()));
             std::deque<char> req = request_buffer.extract_front_http(request_header);
-            request_header.clear();
             result_q.push(host);
             request_occured(host, req);
+            request_header.clear();
         }
     }
 }

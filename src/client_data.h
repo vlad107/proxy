@@ -45,8 +45,8 @@ private:
     std::shared_ptr<event_registration> response_event;
 
     void return_response(std::deque<char>);
-    void response_occured(const std::string &, std::deque<char>);
-    void request_occured(const std::string &, std::deque<char>);
+    void response_occured(const std::string &, const std::deque<char> &);
+    void request_occured(const std::string &, const std::deque<char> &);
 };
 
 #endif // CLIENT_DATA_H
