@@ -20,12 +20,13 @@ void http_buffer::initialize()
 bool http_buffer::available_body(const http_parser &header, bool started)
 {
     assert(_was_header_end);
-    size_t content_length = header.get_content_length();
-    if (content_length == CHUNKED)
+    int code;
+    size_t content_length = header.get_content_length(code);
+    if (CHUNKED == code)
     {
         return _was_body_end;
     }
-    if (content_length == UNTIL_DISCONNECT)
+    if (UNTIL_DISCONNECT == code)
     {
         assert(header.get_dir() == http_parser::Direction::RESPONSE); // TODO: if client is HTTP/1.0 then it's possible for request
         return !started;
@@ -36,12 +37,13 @@ bool http_buffer::available_body(const http_parser &header, bool started)
 std::deque<char> http_buffer::extract_front_http(const http_parser &header)
 {
     assert(_was_header_end);
-    size_t content_length = header.get_content_length();
+    int code;
+    size_t content_length = header.get_content_length(code);
     size_t idx;
-    if (content_length == CHUNKED)
+    if (CHUNKED == code)
     {
         idx = body_end_idx + 1;
-    } else if (content_length == UNTIL_DISCONNECT)
+    } else if (UNTIL_DISCONNECT == code)
     {
         idx = data.size();
     } else
@@ -92,7 +94,7 @@ void http_buffer::update_char(size_t idx)
 
 std::deque<char> http_buffer::substr(size_t from, size_t to)
 {
-    if (!((0 <= from) && (from <= to) && (to <= data.size())))
+    if (!((from <= to) && (to <= data.size())))
     {
         throw std::out_of_range("error in buffer::substr(from, to)");
     }
@@ -124,7 +126,7 @@ bool http_buffer::write_all(int fd)
         const size_t BUFF_SIZE = 1024;
         size_t len = std::min(BUFF_SIZE, data.size());
         char tmp[BUFF_SIZE];
-        for (int j = 0; j < len; j++) tmp[j] = data[j];
+        for (size_t j = 0; j < len; j++) tmp[j] = data[j];
         int _write = ::send(fd, tmp, len, MSG_NOSIGNAL);
         if (_write > 0)
         {

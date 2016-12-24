@@ -95,7 +95,10 @@ void host_data::activate_request_handler()
             {
                 efd->add_deleter([this]()
                 {
-                    request_event.reset();
+                    if (request_event)
+                    {
+                        request_event.reset();
+                    }
                 });
             }
             _event ^= EPOLLOUT;

@@ -94,8 +94,9 @@ void http_parser::parse_header(std::string header, http_parser::Direction dir)
     }
 }
 
-size_t http_parser::get_content_length() const
+size_t http_parser::get_content_length(int &code) const
 {
+    code = 0;
     if ((dir == Direction::RESPONSE) &&
         (((100 <= response_code) && (response_code <= 199)) || (response_code == 204) || (response_code == 304)))
     {
@@ -110,7 +111,8 @@ size_t http_parser::get_content_length() const
         std::string connection = get_item("Connection");
         if (connection.find("close") != std::string::npos)
         {
-            return UNTIL_DISCONNECT;
+            code = UNTIL_DISCONNECT;
+            return 0;
         }
         throw std::runtime_error("connection != close");
     } catch (...)
@@ -120,7 +122,8 @@ size_t http_parser::get_content_length() const
             std::string encoding = get_item("Transfer-Encoding");
             if (encoding.find("identity") == std::string::npos)
             {
-                return CHUNKED;
+                code = CHUNKED;
+                return 0;
             }
             assert(false); // TODO: have not seen what to do in this case in RFC
         } catch (...)
@@ -128,7 +131,6 @@ size_t http_parser::get_content_length() const
             try
             {
                 std::string length = get_item("Content-Length");
-                std::cerr << "Content-Length = " << length << std::endl;
                 return std::stoi(length);
             } catch (...)
             {
@@ -136,6 +138,7 @@ size_t http_parser::get_content_length() const
             }
         }
     }
+    assert(false);
 }
 
 

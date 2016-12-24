@@ -29,7 +29,7 @@ void epoll_handler::loop()
         int ev_sz;
         if ((ev_sz = epoll_wait(efd, evs, MAX_EVENTS, 100)) < 0)
         {
-            if (errno = EINTR)
+            if (EINTR == errno)
             {
                 std::cerr << "epoll_wait was interrupted" << std::endl;
                 continue;

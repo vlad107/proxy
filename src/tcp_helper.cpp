@@ -16,8 +16,8 @@ void tcp_helper::make_nonblocking(int fd)
 
 std::deque<char> tcp_helper::read_all(int fd)
 {
-    const int BUFF_SIZE = 1024;
-    char tmp[BUFF_SIZE];
+    const size_t BUFF_SIZE = 1024;
+    char tmp[BUFF_SIZE + 1];
     int _read;
     std::deque<char> result;
     while ((_read = ::read(fd, tmp, BUFF_SIZE)) > 0)

@@ -36,7 +36,10 @@ void client_data::return_response(std::deque<char> http_response, bool _closed)
                 {
                     efd->add_deleter([&, this]()
                     {
-                        response_event.reset();
+                        if (response_event)
+                        {
+                            response_event.reset();
+                        }
                         if ((result_q.empty()) || (_closed))
                         {
 //                            std::cerr << "closed : " << (_closed ? 1 : 0) << std::endl;
@@ -72,7 +75,7 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
     {
         auto deleter_handler = [this, host]()
         {
-            std::cerr << "SERVER CLOSED" << std::endl;
+//            std::cerr << "SERVER CLOSED" << std::endl;
             hosts[host]->close();
             response_occured(host, std::deque<char>());
             if (hosts[host]->empty())

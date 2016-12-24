@@ -28,8 +28,10 @@ int main(int argc, char *argv[])
     proxy_server server(&efd, port);
     std::signal(SIGINT, [](int num)
     {
+        static_cast<void>(num);
         term = 1;
     });
+
     efd.loop();
     return 0;
 }

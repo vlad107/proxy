@@ -23,7 +23,7 @@ public:
     void clear();
 
     bool empty() const;
-    size_t get_content_length() const;
+    size_t get_content_length(int &code) const;
     Version get_ver() const;
     Direction get_dir() const;
     std::string get_host() const;
