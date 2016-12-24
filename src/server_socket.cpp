@@ -34,6 +34,7 @@ int server_socket::get_socket()
 
 int server_socket::accept(int fd)
 {
+    assert(fd == sfd.getd());
     sockaddr_in addr;
     socklen_t addr_len = sizeof(addr);
     int cfd;
