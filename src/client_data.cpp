@@ -24,8 +24,7 @@ void client_data::return_response(std::deque<char> http_response, bool _closed)
 {
     if (response_buffer.empty())
     {
-        // TODO: is shared_ptr bad here?
-        response_event = std::make_shared<event_registration>(efd,
+        response_event = std::make_unique<event_registration>(efd,
                                                               client_outfd.getd(),
                                                               EPOLLOUT,
                                                               [&](int _fd, int _event)
@@ -34,19 +33,22 @@ void client_data::return_response(std::deque<char> http_response, bool _closed)
             {
                 if (response_buffer.write_all(_fd))
                 {
-                    efd->add_deleter([&, this]()
+                    efd->add_deleter([this]()
                     {
-                        if (response_event)
-                        {
-                            response_event.reset();
-                        }
-                        if ((result_q.empty()) || (_closed))
-                        {
-//                            std::cerr << "closed : " << (_closed ? 1 : 0) << std::endl;
-                            assert(result_q.empty());
-                            assert(_was_disconnect_handler);
-                            disconnect_handler();
-                        }
+                        assert(result_q.empty());
+                        assert(_was_disconnect_handler);
+                        disconnect_handler();
+//                        if (response_event)
+//                        {
+//                            response_event.reset();
+//                        }
+//                        if (result_q.empty())
+//                        {
+////                            std::cerr << "closed : " << (_closed ? 1 : 0) << std::endl;
+//                            assert(result_q.empty());
+//                            assert(_was_disconnect_handler);
+//                            disconnect_handler();
+//                        }
                     });
                 }
                 _event ^= EPOLLOUT;
@@ -75,7 +77,6 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
     {
         auto deleter_handler = [this, host]()
         {
-//            std::cerr << "SERVER CLOSED" << std::endl;
             hosts[host]->close();
             response_occured(host, std::deque<char>());
             if (hosts[host]->empty())

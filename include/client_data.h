@@ -45,7 +45,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<host_data>> hosts;
     std::function<void()> disconnect_handler;
 
-    std::shared_ptr<event_registration> response_event;
+    std::unique_ptr<event_registration> response_event;
 
     void return_response(std::deque<char>, bool closed);
     void response_occured(const std::string &, const std::deque<char> &);

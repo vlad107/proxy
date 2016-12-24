@@ -93,13 +93,13 @@ void host_data::activate_request_handler()
         {
             if (buffer_in.write_all(_fd))
             {
-                efd->add_deleter([this]()
-                {
-                    if (request_event)
-                    {
-                        request_event.reset();
-                    }
-                });
+//                efd->add_deleter([this]()
+//                {
+//                    if (request_event)
+//                    {
+//                        request_event.reset();
+//                    }
+//                });
             }
             _event ^= EPOLLOUT;
         }
