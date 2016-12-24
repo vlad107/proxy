@@ -16,22 +16,6 @@
 
 extern volatile sig_atomic_t term;
 
-class my_epoll_data
-{
-    int fd;
-    std::function<void(int, int)> func;
-public:
-    my_epoll_data(int fd, std::function<void(int, int)> func) : fd(fd), func(func) {}
-    void f(int fd, int event)
-    {
-        func(fd, event);
-    }
-    int get_descriptor()
-    {
-        return fd;
-    }
-};
-
 class epoll_handler
 {
     int efd;
