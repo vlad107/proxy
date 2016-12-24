@@ -13,7 +13,7 @@
 
 class background_executor
 {
-    static const size_t THREADS_AMOUNT = 4;
+    static const size_t THREADS_AMOUNT = 16;
     std::vector<std::unique_ptr<smart_thread>> threads;
     std::mutex _mutex;
     std::queue<std::function<void()>> tasks;

@@ -71,7 +71,13 @@ void http_parser::parse_header(std::string header, http_parser::Direction dir)
     }
     if (dir == Direction::REQUEST)
     {
-        request_type = (line.find("GET") != std::string::npos) ? RequestType::GET : RequestType::POST;
+        if (line.find("GET") != std::string::npos)
+        {
+            request_type = RequestType::GET;
+        } else if (line.find("POST") != std::string::npos)
+        {
+            request_type = RequestType::POST;
+        } else assert(false);
     }
     while (getline(in, line))
     {
@@ -122,6 +128,7 @@ size_t http_parser::get_content_length() const
             try
             {
                 std::string length = get_item("Content-Length");
+                std::cerr << "Content-Length = " << length << std::endl;
                 return std::stoi(length);
             } catch (...)
             {

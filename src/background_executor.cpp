@@ -24,7 +24,6 @@ background_executor::background_executor()
                             handler = tasks.front();
                             tasks.pop();
                         }
-                        std::cerr << "EXECUTING IN THREAD " << i << std::endl;
                         handler();
                     } catch (const std::exception &e)
                     {

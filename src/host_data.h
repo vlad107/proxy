@@ -51,7 +51,7 @@ public:
     void add_request(std::deque<char> req);
     void add_response(std::deque<char> resp);
     void start_on_socket(sockfd host_socket);
-    bool started();
+    bool closed();
     void close();
     bool empty();
 

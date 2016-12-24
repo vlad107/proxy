@@ -71,7 +71,7 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
         {
             std::deque<char> response = tcp_helper::read_all(ffd);
             response_occured(host, response);
-            if ((hosts[host]->empty()) && (!hosts[host]->started()))
+            if ((hosts[host]->empty()) && (hosts[host]->closed()))
             {
                 hosts.erase(host);
             }

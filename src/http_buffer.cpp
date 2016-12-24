@@ -109,7 +109,7 @@ std::string http_buffer::get_header()
 {
     assert(_was_header_end);
     std::string result(data.begin(), data.begin() + header_end_idx + 1);
-    return std::string(data.begin(), data.begin() + header_end_idx + 1);
+    return result;
 }
 
 bool http_buffer::empty()

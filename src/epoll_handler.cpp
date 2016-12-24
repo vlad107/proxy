@@ -40,7 +40,8 @@ void epoll_handler::loop()
         {
             if (evs[i].events & (EPOLLERR | EPOLLHUP))
             {
-                throw std::runtime_error("error occured for some event in epoll");
+                evs[i].events |= EPOLLRDBAND;
+//                throw std::runtime_error("error occured for some event in epoll");
             }
             int fd = evs[i].data.fd;
             if (events.count(fd) == 0)

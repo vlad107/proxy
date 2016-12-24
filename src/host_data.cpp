@@ -36,9 +36,9 @@ void host_data::close()
     _closed = true;
 }
 
-bool host_data::started()
+bool host_data::closed()
 {
-    return _started;
+    return _closed;
 }
 
 void host_data::start_on_socket(sockfd host_socket)
@@ -97,6 +97,7 @@ void host_data::activate_request_handler()
                 {
 //                    std::cerr << "deactivating request_handler" << std::endl;
                     request_event.reset();
+                    _closed = false;
                 });
             }
             _event ^= EPOLLOUT;
@@ -122,7 +123,7 @@ bool host_data::available_response()
         {
             response_header.parse_header(buffer_out.get_header(), http_parser::Direction::RESPONSE);
         }
-        return buffer_out.available_body(response_header, _started);
+        return buffer_out.available_body(response_header, !_closed);
     }
     return false;
 }
