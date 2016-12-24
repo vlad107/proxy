@@ -27,7 +27,7 @@ sockfd::sockfd(sockfd &&other)
     other.fd = -1;
 }
 
-sockfd &sockfd::operator=(sockfd &&other) // TODO: swap-trick should be here
+sockfd &sockfd::operator=(sockfd &&other)
 {
     std::swap(fd, other.fd);
     return *this;

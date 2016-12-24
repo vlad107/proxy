@@ -134,7 +134,7 @@ size_t http_parser::get_content_length(int &code) const
                 return std::stoi(length);
             } catch (...)
             {
-                assert(false);
+                return 0;
             }
         }
     }

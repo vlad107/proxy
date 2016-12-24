@@ -11,17 +11,32 @@
 
 #include "smart_thread.h"
 
+class notifier
+{
+public:
+    notifier(bool& alive, std::condition_variable& cond);
+
+    notifier(notifier const&) = delete;
+    notifier& operator=(notifier const&) = delete;
+
+    ~notifier();
+
+private:
+    bool& alive;
+    std::condition_variable& cond;
+};
+
 class background_executor
 {
     static const size_t THREADS_AMOUNT = 16;
-    std::vector<std::unique_ptr<smart_thread>> threads;
     std::mutex _mutex;
     std::queue<std::function<void()>> tasks;
     std::condition_variable cond;
     bool alive;
+    std::vector<smart_thread> threads;
+    notifier notify_threads;
 public:
     background_executor();
-    ~background_executor();
     void add_task(std::function<void()> task);
 };
 

@@ -1,5 +1,6 @@
 project(proxy)
 cmake_minimum_required(VERSION 3.2)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O2 -march=native -ffast-math -mtune=native -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pedantic -Wall -Wextra -Wno-char-subscripts -Wno-unused-result -g -fsanitize=address")
 add_definitions(-D_GLIBCXX_DEBUG)
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
@@ -20,7 +21,7 @@ target_link_libraries(${PROJECT_NAME} Threads::Threads)
 #cmake_minimum_required(VERSION 3.2)
 
 ##set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pedantic -Wall -Wextra -Wno-char-subscripts -Wno-unused-result -g -fsanitize=thread")
-##set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O2 -g")
+
 ##set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -ggdb")
 
 ##add_definitions(-D_LINUX)

@@ -4,12 +4,12 @@
 
 class smart_thread
 {
-    bool *alive;
     std::thread th;
 public:
-    smart_thread(bool *alive, std::function<void()> handler);
+    smart_thread(std::function<void()> handler);
+    smart_thread(smart_thread&&) = default;
+    smart_thread& operator=(smart_thread&&) = default;
     ~smart_thread();
-    void join();
 };
 
 #endif // SMART_THREAD_H
