@@ -7,7 +7,7 @@ proxy_server::proxy_server(epoll_handler *efd, int port)
           sfd.get_socket(),
           EPOLLIN,
           [this, efd](int fd, int event)
-{       // TODO: awful style
+{       // TODO: dont like it
     if (event & EPOLLIN)
     {
         sockfd cfd(sfd.accept(fd));
@@ -15,10 +15,7 @@ proxy_server::proxy_server(epoll_handler *efd, int port)
         auto ptr = conns.insert(std::move(conn)).first;
         (*ptr)->set_disconnect([this, ptr, efd]()
         {
-            efd->add_deleter([this, ptr, efd]()
-            {
-                conns.erase(ptr);
-            });
+            conns.erase(ptr);
         });
         (*ptr)->start();
         event ^= EPOLLIN;

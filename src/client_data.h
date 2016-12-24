@@ -32,7 +32,9 @@ public:
 
     void data_occured(int fd);
     int get_client_infd();
+    void set_disconnect(std::function<void()> disconnect_handler);
 private:
+    bool _was_disconnect_handler;
     epoll_handler *efd;
     sockfd client_infd;
     sockfd client_outfd;
@@ -41,10 +43,11 @@ private:
     http_buffer response_buffer;
     std::queue<std::string> result_q;
     std::unordered_map<std::string, std::unique_ptr<host_data>> hosts;
+    std::function<void()> disconnect_handler;
 
     std::shared_ptr<event_registration> response_event;
 
-    void return_response(std::deque<char>);
+    void return_response(std::deque<char>, bool closed);
     void response_occured(const std::string &, const std::deque<char> &);
     void request_occured(const std::string &, const std::deque<char> &);
 };

@@ -1,7 +1,8 @@
 #include "client_data.h"
 
 client_data::client_data(sockfd cfd, epoll_handler *efd)
-    : efd(efd),
+    : _was_disconnect_handler(false),
+      efd(efd),
       client_infd(std::move(cfd)),
       client_outfd(client_infd.dup())
 {
@@ -13,7 +14,13 @@ int client_data::get_client_infd()
     return client_infd.getd();
 }
 
-void client_data::return_response(std::deque<char> http_response)
+void client_data::set_disconnect(std::function<void ()> disconnect_handler)
+{
+    this->disconnect_handler = disconnect_handler;
+    _was_disconnect_handler = true;
+}
+
+void client_data::return_response(std::deque<char> http_response, bool _closed)
 {
     if (response_buffer.empty())
     {
@@ -27,9 +34,16 @@ void client_data::return_response(std::deque<char> http_response)
             {
                 if (response_buffer.write_all(_fd))
                 {
-                    efd->add_deleter([&]()
+                    efd->add_deleter([&, this]()
                     {
                         response_event.reset();
+                        if ((result_q.empty()) || (_closed))
+                        {
+//                            std::cerr << "closed : " << (_closed ? 1 : 0) << std::endl;
+                            assert(result_q.empty());
+                            assert(_was_disconnect_handler);
+                            disconnect_handler();
+                        }
                     });
                 }
                 _event ^= EPOLLOUT;
@@ -45,21 +59,20 @@ void client_data::response_occured(const std::string &host, const std::deque<cha
     hosts[host]->add_response(response);
     while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
     {
-        std::deque<char> http_response = hosts[result_q.front()]->extract_response();
+        std::string cur_host = result_q.front();
         result_q.pop();
-        return_response(http_response);
+        std::deque<char> http_response = hosts[cur_host]->extract_response();
+        return_response(http_response, hosts[cur_host]->closed());
     }
 }
 
 void client_data::request_occured(const std::string & host, const std::deque<char> & req)
 {
-//    std::string tmp(req.begin(), req.end());
-//    std::cout << tmp << std::endl;
-//    std::cout << "=====" << std::endl;
     if (hosts.count(host) == 0)
     {
         auto deleter_handler = [this, host]()
         {
+            std::cerr << "SERVER CLOSED" << std::endl;
             hosts[host]->close();
             response_occured(host, std::deque<char>());
             if (hosts[host]->empty())

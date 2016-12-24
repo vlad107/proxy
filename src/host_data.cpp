@@ -95,9 +95,7 @@ void host_data::activate_request_handler()
             {
                 efd->add_deleter([this]()
                 {
-//                    std::cerr << "deactivating request_handler" << std::endl;
                     request_event.reset();
-                    _closed = false;
                 });
             }
             _event ^= EPOLLOUT;
