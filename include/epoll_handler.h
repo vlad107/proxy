@@ -22,7 +22,7 @@ class epoll_handler
     std::unordered_map<int, std::function<int(int, int)>> events;
     std::vector<std::function<void()>> deleters;
     background_executor background;
-    static const int MAX_EVENTS = 1024;
+    static const int MAX_EVENTS = 1;
 public:
     epoll_handler& operator=(epoll_handler const&) = delete;
     epoll_handler(epoll_handler const&) = delete;

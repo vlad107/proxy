@@ -31,7 +31,7 @@ class host_data
     sockfd server_fdout;
     event_registration response_event;
 
-    std::shared_ptr<event_registration> request_event;
+    std::unique_ptr<event_registration> request_event;
     void activate_request_handler();
 public:
     host_data &operator=(host_data const&) = delete;

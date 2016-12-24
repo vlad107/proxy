@@ -20,7 +20,7 @@ void client_data::set_disconnect(std::function<void ()> disconnect_handler)
     _was_disconnect_handler = true;
 }
 
-void client_data::return_response(std::deque<char> http_response, bool _closed)
+void client_data::return_response(std::deque<char> http_response)
 {
     if (response_buffer.empty())
     {
@@ -33,23 +33,9 @@ void client_data::return_response(std::deque<char> http_response, bool _closed)
             {
                 if (response_buffer.write_all(_fd))
                 {
-                    efd->add_deleter([this]()
-                    {
-                        assert(result_q.empty());
-                        assert(_was_disconnect_handler);
-                        disconnect_handler();
-//                        if (response_event)
-//                        {
-//                            response_event.reset();
-//                        }
-//                        if (result_q.empty())
-//                        {
-////                            std::cerr << "closed : " << (_closed ? 1 : 0) << std::endl;
-//                            assert(result_q.empty());
-//                            assert(_was_disconnect_handler);
-//                            disconnect_handler();
-//                        }
-                    });
+                    assert(result_q.empty());
+                    assert(_was_disconnect_handler);
+                    disconnect_handler();
                 }
                 _event ^= EPOLLOUT;
             }
@@ -61,13 +47,15 @@ void client_data::return_response(std::deque<char> http_response, bool _closed)
 
 void client_data::response_occured(const std::string &host, const std::deque<char> & response)
 {
-    hosts[host]->add_response(response);
+    auto iter = hosts.find(host);
+    assert(iter != hosts.end());
+    iter->second->add_response(response);
     while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
     {
         std::string cur_host = result_q.front();
         result_q.pop();
         std::deque<char> http_response = hosts[cur_host]->extract_response();
-        return_response(http_response, hosts[cur_host]->closed());
+        return_response(http_response);
     }
 }
 
@@ -88,7 +76,7 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
         {
             std::deque<char> response = tcp_helper::read_all(ffd);
             response_occured(host, response);
-            if ((hosts[host]->empty()) && (hosts[host]->closed()))
+            if (hosts[host]->empty())
             {
                 hosts.erase(host);
             }
@@ -104,8 +92,11 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
             try
             {
                 tcp_helper::getaddrbyhost(host, host_addr);
-                sockfd host_socket(tcp_helper::open_connection(host_addr, port));
-                iter->start_on_socket(std::move(host_socket));
+                auto shared_host = std::make_shared<sockfd>(tcp_helper::open_connection(host_addr, port));
+                efd->add_deleter([this, host, shared_host]()
+                {
+                    hosts[host]->start_on_socket(std::move(*shared_host));
+                });
             } catch (...)
             {
                 std::cerr << "BAD REQUEST" << std::endl;

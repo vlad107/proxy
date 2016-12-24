@@ -133,7 +133,8 @@ bool http_buffer::write_all(int fd)
             data.erase(data.begin(), data.begin() + _write);
         } else if (_write < 0)
         {
-            if ((errno == EINTR) || (errno == EPIPE)) continue;
+            if (EINTR == errno) continue;
+            if (EPIPE == errno) return data.size();
             throw std::runtime_error("error in write():\n" + std::string(strerror(errno)));
         } else break;
     }

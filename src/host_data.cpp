@@ -61,7 +61,7 @@ void host_data::start_on_socket(sockfd host_socket)
     {
         if (_event & EPOLLRDHUP)
         {
-            efd->add_deleter(disconnect_handler);
+            disconnect_handler();
             _event ^= EPOLLRDHUP;
         } else if (_event & EPOLLIN)
         {
@@ -84,7 +84,7 @@ bool host_data::empty()
 
 void host_data::activate_request_handler()
 {
-    request_event = std::make_shared<event_registration>(efd,
+    request_event = std::make_unique<event_registration>(efd,
                                                          server_fdout.getd(),
                                                          EPOLLOUT,
                                                          [this](int _fd, int _event)
@@ -93,13 +93,10 @@ void host_data::activate_request_handler()
         {
             if (buffer_in.write_all(_fd))
             {
-//                efd->add_deleter([this]()
-//                {
-//                    if (request_event)
-//                    {
-//                        request_event.reset();
-//                    }
-//                });
+                if (request_event)
+                {
+                    request_event.reset();
+                }
             }
             _event ^= EPOLLOUT;
         }

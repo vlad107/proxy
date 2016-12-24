@@ -84,5 +84,5 @@ void epoll_handler::add_deleter(std::function<void ()> func)
 
 void epoll_handler::add_background_task(std::function<void()> handler)
 {
-    background.add_task(handler);
+    background.add_task(std::move(handler));
 }
