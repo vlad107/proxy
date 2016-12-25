@@ -7,17 +7,18 @@ proxy_server::proxy_server(epoll_handler *efd, int port)
           sfd.get_socket(),
           EPOLLIN,
           [this, efd](int fd, int event)
-{       // TODO: dont like it
+{
     if (event & EPOLLIN)
     {
         sockfd cfd(sfd.accept(fd));
-        auto conn = std::make_unique<connection>(std::move(cfd), efd);
-        auto ptr = conns.insert(std::move(conn)).first;
-        (*ptr)->set_disconnect([this, ptr, efd]()
+        int index = cfd.getd();
+        conns[index] = std::make_unique<connection>(std::move(cfd), efd);
+        auto ptr = conns.find(index);
+        ptr->second->set_disconnect([this, ptr]()
         {
             conns.erase(ptr);
         });
-        (*ptr)->start();
+        ptr->second->start();
         event ^= EPOLLIN;
     }
     return event;

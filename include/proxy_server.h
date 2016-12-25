@@ -6,7 +6,7 @@
 
 #include <iostream>
 #include <memory>
-#include <set>
+#include <unordered_map>
 
 extern volatile sig_atomic_t term;
 
@@ -15,7 +15,7 @@ class proxy_server
     epoll_handler *efd;
     server_socket sfd;
     event_registration reg;
-    std::set<std::unique_ptr<connection>> conns; // TODO: there is possibility to do it without set
+    std::unordered_map<int, std::unique_ptr<connection>> conns;
 public:
     proxy_server &operator=(proxy_server const&) = delete;
     proxy_server(proxy_server const&) = delete;
