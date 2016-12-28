@@ -16,7 +16,6 @@ epoll_handler::~epoll_handler()
     for (auto deleter: deleters) deleter();
     deleters.clear();
     assert(close(efd) == 0);
-    assert(events.empty());
 }
 
 void epoll_handler::loop()
@@ -41,36 +40,27 @@ void epoll_handler::loop()
             if (evs[i].events & (EPOLLERR | EPOLLHUP))
             {
                 evs[i].events |= EPOLLRDBAND;
-//                throw std::runtime_error("error occured for some event in epoll");
             }
-            int fd = evs[i].data.fd;
-            if (events.count(fd) == 0)
-            {
-                std::cerr << fd << std::endl;
-                assert(events.count(fd) != 0);
-            }
-            auto cur_handler = events[fd];
-            cur_handler(fd, evs[i].events);
+            std::cerr << "occured on " << evs[i].data.ptr << std::endl;
+            reinterpret_cast<event_registration*>(evs[i].data.ptr)->execute(evs[i].events);
         }
     }
 }
 
-void epoll_handler::add_event(int fd, int mask, std::function<int(int, int)> handler)
+void epoll_handler::add_event(int fd, int mask, event_registration *reg)
 {
     epoll_event ev{};
-    ev.data.fd = fd;
+    std::cerr << "now event_registration on " << reg << std::endl;
+    ev.data.ptr = reinterpret_cast<void*>(reg);
     ev.events = mask;
     if (epoll_ctl(efd, EPOLL_CTL_ADD, fd, &ev) < 0)
     {
         throw std::runtime_error("error in epoll_ctl(EPOLL_CTL_ADD)\n" + std::string(strerror(errno)));
     }
-    events[fd] = handler;
 }
 
 void epoll_handler::rem_event(int fd)
 {
-    assert(events.count(fd) != 0);
-    events.erase(events.find(fd));
     if (epoll_ctl(efd, EPOLL_CTL_DEL, fd, nullptr) < 0)
     {
         throw std::runtime_error("Error in epoll_ctl(EPOLL_CTL_DEL):\n" + std::string(strerror(errno)));
@@ -84,5 +74,5 @@ void epoll_handler::add_deleter(std::function<void ()> func)
 
 void epoll_handler::add_background_task(std::function<void()> handler)
 {
-    background.add_task(std::move(handler));
+    background.add_task(handler);
 }

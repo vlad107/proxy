@@ -23,6 +23,10 @@ public:
     proxy_server(proxy_server&&) = delete;
 
     proxy_server(epoll_handler *efd, int port);
+    void debug()
+    {
+        std::cerr << "registration on " << &reg << std::endl;
+    }
 };
 
 #endif // PROXY_SERVER_H

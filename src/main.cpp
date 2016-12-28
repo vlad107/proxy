@@ -7,6 +7,8 @@
 
 #include "proxy_server.h"
 
+#define DEBUG
+
 const std::string USAGE = "Usage: ./server [port]";
 
 extern volatile sig_atomic_t term;

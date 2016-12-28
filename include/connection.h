@@ -15,13 +15,20 @@ class connection
     std::function<void()> disconnect_handler;
 public:
     connection(connection const &) = delete;
-    connection(connection&&) = delete;
     connection &operator =(connection const &) = delete;
+    connection(connection&&) = delete;
     connection &operator =(connection &&) = delete;
 
     connection(sockfd cfd, epoll_handler *efd);
     void set_disconnect(std::function<void()> disconnect_handler);
     void start();
+
+    void debug()
+    {
+#ifdef DEBUG
+        std::cerr << "now registration on " << &reg << std::endl;
+#endif
+    }
 };
 
 #endif // CONNECTION_H

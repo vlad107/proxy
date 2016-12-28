@@ -12,7 +12,7 @@ void connection::set_disconnect(std::function<void ()> disconnect_handler)
 {
     _was_disconnect_handler = true;
     this->disconnect_handler = disconnect_handler;
-    data.set_disconnect(disconnect_handler);
+    data.set_disconnect(disconnect_handler);        // TODO: how to say client that it should be closed?
 }
 
 void connection::start()
@@ -36,3 +36,22 @@ void connection::start()
         return _event;
     }));
 }
+
+//connection::connection(connection &&other)
+//    : efd(other.efd),
+//      _was_disconnect_handler(other._was_disconnect_handler),
+//      data(-1, 0),  // TODO
+//      reg(),        // TODO
+//      disconnect_handler(other.disconnect_handler)
+//{
+//}
+
+//connection &connection::operator =(connection &&other)
+//{
+//    std::swap(efd, other.efd);
+//    std::swap(_was_disconnect_handler, other._was_disconnect_handler);
+////    TODO: data
+////    TODO: reg
+//    std::swap(disconnect_handler, other.disconnect_handler);
+//    return *this;
+//}
