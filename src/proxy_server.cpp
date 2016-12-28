@@ -10,8 +10,8 @@ proxy_server::proxy_server(epoll_handler *efd, int port)
 {
     if (event & EPOLLIN)
     {
-        std::cerr << "NEW CLIENT DETECTED" << std::endl;
         sockfd cfd(sfd.accept(fd));
+        std::cerr << "NEW CLIENT DETECTED ON DESCRIPTOR " << cfd.getd() << std::endl;
         int index = cfd.getd();
         auto ptr = conns.emplace(index, std::make_unique<connection>(std::move(cfd), efd)).first;
         ptr->second->set_disconnect([this, ptr]()

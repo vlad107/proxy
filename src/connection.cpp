@@ -3,8 +3,7 @@
 connection::connection(sockfd cfd, epoll_handler *efd)
     : efd(efd),
       _was_disconnect_handler(false),
-      data(std::move(cfd), efd),
-      reg()
+      data(std::move(cfd), efd)
 {
 }
 
@@ -36,22 +35,3 @@ void connection::start()
         return _event;
     }));
 }
-
-//connection::connection(connection &&other)
-//    : efd(other.efd),
-//      _was_disconnect_handler(other._was_disconnect_handler),
-//      data(-1, 0),  // TODO
-//      reg(),        // TODO
-//      disconnect_handler(other.disconnect_handler)
-//{
-//}
-
-//connection &connection::operator =(connection &&other)
-//{
-//    std::swap(efd, other.efd);
-//    std::swap(_was_disconnect_handler, other._was_disconnect_handler);
-////    TODO: data
-////    TODO: reg
-//    std::swap(disconnect_handler, other.disconnect_handler);
-//    return *this;
-//}
