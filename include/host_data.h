@@ -42,7 +42,7 @@ public:
     host_data(epoll_handler *_efd, std::function<void()>, std::function<void(int)>);
     ~host_data();
 
-    bool available_response();
+    bool response_available();
     std::deque<char> extract_response();
 
 

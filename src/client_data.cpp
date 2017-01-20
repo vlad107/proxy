@@ -51,7 +51,7 @@ void client_data::response_occured(const std::string &host, const std::deque<cha
     auto iter = hosts.find(host);
     assert(iter != hosts.end());
     iter->second->add_response(response);
-    while ((!result_q.empty()) && (hosts[result_q.front()]->available_response()))
+    while ((!result_q.empty()) && (hosts[result_q.front()]->response_available()))
     {
         std::string cur_host = result_q.front();
         result_q.pop();

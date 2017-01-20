@@ -118,7 +118,7 @@ void host_data::add_request(std::deque<char> req)
     buffer_in.add_chunk(req);
 }
 
-bool host_data::available_response()
+bool host_data::response_available()
 {
     if (buffer_out.header_available())
     {
