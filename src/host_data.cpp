@@ -45,17 +45,17 @@ void host_data::start_on_socket(sockfd host_socket)
 {
     assert(!_started);
     server_fdout = std::move(host_socket);
-    tcp_helper::make_nonblocking(server_fdout.getd());
-    int tmpfd = dup(server_fdout.getd());
+    tcp_helper::make_nonblocking(server_fdout.getfd());
+    int tmpfd = dup(server_fdout.getfd());
     if (tmpfd < 0)
     {
         throw std::runtime_error("error in dup()");
     }
     server_fdin = std::move(sockfd(tmpfd));
-    tcp_helper::make_nonblocking(server_fdin.getd());
+    tcp_helper::make_nonblocking(server_fdin.getfd());
     response_event = std::move(
                 event_registration(efd,
-                                   server_fdin.getd(),
+                                   server_fdin.getfd(),
                                    EPOLLIN | EPOLLRDHUP,
                                    [this](int _fd, int _event)
     {
@@ -85,7 +85,7 @@ bool host_data::empty()
 void host_data::activate_request_handler()
 {
     request_event = std::make_unique<event_registration>(efd,
-                                                         server_fdout.getd(),
+                                                         server_fdout.getfd(),
                                                          EPOLLOUT,
                                                          [this](int _fd, int _event)
     {

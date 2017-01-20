@@ -6,12 +6,12 @@ client_data::client_data(sockfd cfd, epoll_handler *efd)
       client_infd(std::move(cfd)),
       client_outfd(client_infd.dup())
 {
-    tcp_helper::make_nonblocking(client_infd.getd());
+    tcp_helper::make_nonblocking(client_infd.getfd());
 }
 
 int client_data::get_client_infd()
 {
-    return client_infd.getd();
+    return client_infd.getfd();
 }
 
 void client_data::set_disconnect(std::function<void ()> disconnect_handler)
@@ -25,7 +25,7 @@ void client_data::return_response(std::deque<char> http_response)
     if (response_buffer.empty())
     {
         response_event = std::make_unique<event_registration>(efd,
-                                                              client_outfd.getd(),
+                                                              client_outfd.getfd(),
                                                               EPOLLOUT,
                                                               [&](int _fd, int _event)
         {
@@ -81,22 +81,42 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
                 hosts.erase(host);
             }
         };
+        int _ev = eventfd(0, 0);
+        auto shared_host = std::make_shared<sockfd>();
+        auto handler = [_ev, this, host, shared_host](int _fd, int _event)
+        {
+            std::cerr << "CONNECTION OPENED ON " << shared_host->getfd() << std::endl;
+            if (_event & EPOLLIN)
+            {
+                eventfd_t val;
+                int err = eventfd_read(_fd, &val);
+                assert(err == 0);
+                assert(shared_host->getfd() != -1);
+                hosts[host]->start_on_socket(std::move(*shared_host));
+                std::cerr << "count = " << wait_regs.count(host);
+                wait_regs.erase(wait_regs.find(host));
+                close(_ev);
+                _event ^= EPOLLIN;
+            }
+            std::cerr << "_event = " << _event << std::endl;
+            return _event;
+        };
+        wait_regs[host] = std::make_unique<event_registration>(efd, _ev, EPOLLIN, handler);
         hosts[host] = std::make_unique<host_data>(efd, deleter_handler, response_occured_handler);
 
         auto &iter = hosts[host];
         iter->add_request(req);
-        efd->add_background_task([this, host, &iter]()
+        efd->add_background_task([shared_host, this, host, &iter, _ev]()
         {
             int port = tcp_helper::getportbyhost(host);
             std::string host_addr;
             try
             {
                 tcp_helper::getaddrbyhost(host, host_addr);
-                auto shared_host = std::make_shared<sockfd>(tcp_helper::open_connection(host_addr, port));
-                efd->add_deleter([this, host, shared_host]()
-                {
-                    hosts[host]->start_on_socket(std::move(*shared_host));
-                });
+                shared_host->setfd(tcp_helper::open_connection(host_addr, port));
+                int err = eventfd_write(_ev, 107);
+                std::cerr << "writed 0 to " << _ev << std::endl << "  err = " << err << std::endl;
+                assert(err == 0);
             } catch (...)
             {
                 std::cerr << "BAD REQUEST" << std::endl;

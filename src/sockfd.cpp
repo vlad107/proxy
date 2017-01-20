@@ -16,9 +16,19 @@ sockfd::~sockfd()
     }
 }
 
-int sockfd::getd()
+int sockfd::getfd()
 {
     return fd;
+}
+
+int sockfd::setfd(int fd)
+{
+    if (this->fd != -1)
+    {
+        return -1;
+    }
+    this->fd = fd;
+    return 0;
 }
 
 sockfd::sockfd(sockfd &&other)

@@ -42,7 +42,9 @@ void epoll_handler::loop()
                 evs[i].events |= EPOLLRDBAND;
             }
             std::cerr << "occured on " << evs[i].data.ptr << std::endl;
-            reinterpret_cast<event_registration*>(evs[i].data.ptr)->execute(evs[i].events);
+            auto handler = reinterpret_cast<event_registration*>(evs[i].data.ptr)->get_handler();
+            int fd = reinterpret_cast<event_registration*>(evs[i].data.ptr)->get_fd();
+            handler(fd, evs[i].events);
         }
     }
 }

@@ -47,10 +47,14 @@ event_registration& event_registration::operator=(event_registration &&other)
     return *this;
 }
 
-void event_registration::execute(int events)
+std::function<void(int, int)> event_registration::get_handler()
 {
-    assert(fd != -1);
-    handler(fd, events);
+    return handler;
+}
+
+int event_registration::get_fd()
+{
+    return fd;
 }
 
 void event_registration::clean()

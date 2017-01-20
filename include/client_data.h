@@ -48,6 +48,7 @@ private:
     std::function<void()> disconnect_handler;
 
     std::unique_ptr<event_registration> response_event;
+    std::unordered_map<std::string, std::unique_ptr<event_registration>> wait_regs;
 
     void return_response(std::deque<char>);
     void response_occured(const std::string &, const std::deque<char> &);

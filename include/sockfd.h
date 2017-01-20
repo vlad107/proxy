@@ -17,7 +17,8 @@ public:
     sockfd();
     sockfd(int fd);
     ~sockfd();
-    int getd();
+    int getfd();
+    int setfd(int fd);
     int dup();
 };
 
