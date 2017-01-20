@@ -31,7 +31,7 @@ void client_data::return_response(std::deque<char> http_response)
         {
             if (_event & EPOLLOUT)
             {
-                if (response_buffer.write_all(_fd))
+                if ((response_buffer.write_all(_fd)))
                 {
                     assert(result_q.empty());
                     assert(_was_disconnect_handler);
@@ -64,24 +64,6 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
 {
     if (hosts.count(host) == 0)
     {
-        auto deleter_handler = [this, host]()
-        {
-            hosts[host]->close();
-            response_occured(host, std::deque<char>());
-            if (hosts[host]->empty())
-            {
-                hosts.erase(host);
-            }
-        };
-        auto response_occured_handler = [this, host](int ffd)
-        {
-            std::deque<char> response = tcp_helper::read_all(ffd);
-            response_occured(host, response);
-            if (hosts[host]->empty())
-            {
-                hosts.erase(host);
-            }
-        };
         int _ev = eventfd(0, O_CLOEXEC);
         auto shared_host = std::make_shared<sockfd>();
         auto handler = [_ev, this, host, shared_host](int _fd, int _event)
@@ -107,9 +89,27 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
             }
             std::cerr << "_event = " << _event << std::endl;
             return _event;
-        };
+        };  // TODO: where code of lambda stored?
         wait_regs[host] = std::make_unique<event_registration>(efd, _ev, EPOLLIN, handler);
-        hosts[host] = std::make_unique<host_data>(efd, deleter_handler, response_occured_handler);
+        hosts[host] = std::make_unique<host_data>(
+                    efd,
+                    [this, host]()
+                {
+                    std::cerr << "count = " << hosts.count(host) << std::endl;
+                    assert(hosts.count(host) > 0);
+                    hosts[host]->close();
+                    response_occured(host, std::deque<char>());
+                    if (hosts[host]->empty())
+                    {
+                        hosts.erase(host);
+                    }
+                },
+                    [this, host](int ffd)
+                {
+                    assert(hosts.count(host) > 0);
+                    std::deque<char> response = tcp_helper::read_all(ffd);
+                    response_occured(host, response);
+                });
         hosts[host]->add_request(req);
         efd->add_background_task([shared_host, this, host, _ev]()
         {

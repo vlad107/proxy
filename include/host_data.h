@@ -16,11 +16,14 @@
 
 class host_data
 {
+public:
+    enum State {BEFORE, STARTED, CLOSED};
+
+private:
     epoll_handler *efd;
     std::function<void()> disconnect_handler;
     std::function<void(int)> response_handler;
-    bool _started;
-    bool _closed;
+    State cur_state;
 
     std::mutex _mutex;
     std::condition_variable cond;
@@ -51,9 +54,8 @@ public:
     void add_request(std::deque<char> req);
     void add_response(std::deque<char> resp);
     void start_on_socket(sockfd host_socket);
-    bool closed();
-    void close();
     bool empty();
+    void close();
 
 };
 

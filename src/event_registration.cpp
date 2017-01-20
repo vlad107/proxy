@@ -7,7 +7,7 @@ event_registration::event_registration(epoll_handler *efd, int fd, int mask, std
       mask(mask)
 {
     efd->add_event(fd, mask, this);
-    std::cerr << "event registration created in " << this << std::endl;
+//    std::cerr << "event registration created on " << fd << std::endl;
 }
 
 event_registration::event_registration(event_registration &&other)
@@ -31,6 +31,7 @@ event_registration::~event_registration()
 {
     if (fd != -1)
     {
+        std::cerr << "event_registration destructed on " << fd << std::endl;
         efd->rem_event(fd);
     }
 }

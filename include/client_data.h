@@ -44,10 +44,10 @@ private:
     http_parser request_header;
     http_buffer response_buffer;
     std::queue<std::string> result_q;
-    std::unordered_map<std::string, std::unique_ptr<host_data>> hosts;
     std::function<void()> disconnect_handler;
 
     std::unique_ptr<event_registration> response_event;
+    std::unordered_map<std::string, std::unique_ptr<host_data>> hosts;
     std::unordered_map<std::string, std::unique_ptr<event_registration>> wait_regs;
 
     void return_response(std::deque<char>);

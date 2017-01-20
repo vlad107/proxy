@@ -17,19 +17,19 @@ void http_buffer::initialize()
     }
 }
 
-bool http_buffer::body_available(const http_parser &header, bool started)
+bool http_buffer::body_available(const http_parser &header, bool closed)
 {
     assert(_was_header_end);
     int code;
     size_t content_length = header.get_content_length(code);
-    if (CHUNKED == code)
+    if (code == CHUNKED)
     {
         return _was_body_end;
     }
-    if (UNTIL_DISCONNECT == code)
+    if (code == UNTIL_DISCONNECT)
     {
         assert(header.get_dir() == http_parser::Direction::RESPONSE); // TODO: if client is HTTP/1.0 then it's possible for request
-        return !started;
+        return closed;
     }
     return size() - header_end_idx >= content_length;
 }

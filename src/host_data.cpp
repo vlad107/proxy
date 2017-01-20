@@ -6,8 +6,7 @@ host_data::host_data(epoll_handler *efd,
     : efd(efd),
       disconnect_handler(disconnect_handler),
       response_handler(response_handler),
-      _started(false),
-      _closed(false)
+      cur_state(State::BEFORE)
 {
 }
 
@@ -29,23 +28,12 @@ void host_data::notify()
 
 void host_data::bad_request()
 {
-    _started = true;
-    close();
-}
-
-void host_data::close()
-{
-    _closed = true;
-}
-
-bool host_data::closed()
-{
-    return _closed;
+    cur_state = State::CLOSED;
 }
 
 void host_data::start_on_socket(sockfd host_socket)
 {
-    assert(!_started);
+    assert(cur_state == State::BEFORE);
     server_fdout = std::move(host_socket);
     tcp_helper::make_nonblocking(server_fdout.getfd());
     int tmpfd = dup(server_fdout.getfd());
@@ -55,6 +43,7 @@ void host_data::start_on_socket(sockfd host_socket)
     }
     server_fdin = std::move(sockfd(tmpfd));
     tcp_helper::make_nonblocking(server_fdin.getfd());
+    std::cerr << "NEW EVENT_REGISTRATION ON " << server_fdin.getfd() << std::endl;
     response_event = std::move(
                 event_registration(efd,
                                    server_fdin.getfd(),
@@ -63,13 +52,13 @@ void host_data::start_on_socket(sockfd host_socket)
     {
         if (_event & EPOLLIN)
         {
-            std::cerr << "EPOLLIN" << std::endl;
+            std::cerr << "EPOLLIN ON " << _fd << std::endl;
             response_handler(_fd);
             _event ^= EPOLLIN;
         }
         if (_event & EPOLLRDHUP)
         {
-            std::cerr << "EPOLLRDHUP" << std::endl;
+            std::cerr << "EPOLLRDHUP ON " << _fd << std::endl;
             disconnect_handler();
             _event ^= EPOLLRDHUP;
         }
@@ -79,12 +68,17 @@ void host_data::start_on_socket(sockfd host_socket)
     {
         activate_request_handler();
     }
-    _started = true;
+    cur_state = State::STARTED;
 }
 
 bool host_data::empty()
 {
     return buffer_out.empty();
+}
+
+void host_data::close()
+{
+    cur_state = State::CLOSED;
 }
 
 void host_data::activate_request_handler()
@@ -111,7 +105,7 @@ void host_data::activate_request_handler()
 
 void host_data::add_request(std::deque<char> req)
 {
-    if ((_started) && (buffer_in.empty()))
+    if ((cur_state == State::STARTED) && (buffer_in.empty()))
     {
         activate_request_handler();
     }
@@ -126,7 +120,7 @@ bool host_data::response_available()
         {
             response_header.parse_header(buffer_out.get_header(), http_parser::Direction::RESPONSE);
         }
-        return buffer_out.body_available(response_header, !_closed);
+        return buffer_out.body_available(response_header, cur_state == State::CLOSED);
     }
     return false;
 }
