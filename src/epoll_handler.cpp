@@ -13,8 +13,6 @@ epoll_handler::epoll_handler()
 epoll_handler::~epoll_handler()
 {
     std::cerr << "closing epoll handler" << std::endl;
-    for (auto deleter: deleters) deleter();
-    deleters.clear();
     assert(close(efd) == 0);
 }
 
@@ -23,8 +21,6 @@ void epoll_handler::loop()
     struct epoll_event evs[MAX_EVENTS];
     while (!term)
     {
-        for (auto deleter : deleters) deleter();
-        deleters.clear();
         int ev_sz;
         if ((ev_sz = epoll_wait(efd, evs, MAX_EVENTS, 100)) < 0)
         {
@@ -67,11 +63,6 @@ void epoll_handler::rem_event(int fd)
     {
         throw std::runtime_error("Error in epoll_ctl(EPOLL_CTL_DEL):\n" + std::string(strerror(errno)));
     }
-}
-
-void epoll_handler::add_deleter(std::function<void ()> func)
-{
-    deleters.push_back(func);
 }
 
 void epoll_handler::add_background_task(std::function<void()> handler)

@@ -22,7 +22,6 @@ class event_registration;
 class epoll_handler
 {
     int efd;
-    std::vector<std::function<void()>> deleters;
     background_executor background;
     static const int MAX_EVENTS = 1;
 public:

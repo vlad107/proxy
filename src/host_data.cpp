@@ -13,11 +13,13 @@ host_data::host_data(epoll_handler *efd,
 
 host_data::~host_data()
 {
-    std::unique_lock<std::mutex> lock(_mutex);
-    cond.wait(lock, [this]()
-    {
-        return _started;
-    });
+//    std::cerr << "waiting..." << std::endl;
+//    std::unique_lock<std::mutex> lock(_mutex);
+//    cond.wait(lock, [this]()
+//    {
+//        return _started;
+//    });
+//    std::cerr << "descructed" << std::endl;
 }
 
 void host_data::notify()
@@ -59,14 +61,17 @@ void host_data::start_on_socket(sockfd host_socket)
                                    EPOLLIN | EPOLLRDHUP,
                                    [this](int _fd, int _event)
     {
-        if (_event & EPOLLRDHUP)
+        if (_event & EPOLLIN)
         {
-            disconnect_handler();
-            _event ^= EPOLLRDHUP;
-        } else if (_event & EPOLLIN)
-        {
+            std::cerr << "EPOLLIN" << std::endl;
             response_handler(_fd);
             _event ^= EPOLLIN;
+        }
+        if (_event & EPOLLRDHUP)
+        {
+            std::cerr << "EPOLLRDHUP" << std::endl;
+            disconnect_handler();
+            _event ^= EPOLLRDHUP;
         }
         return _event;
     }));

@@ -45,8 +45,9 @@ void client_data::return_response(std::deque<char> http_response)
     response_buffer.add_chunk(http_response);
 }
 
-void client_data::response_occured(const std::string &host, const std::deque<char> & response)
+void client_data::response_occured(const std::string &host, const std::deque<char> &response)
 {
+    std::cerr << "size = " << response.size() << std::endl;
     auto iter = hosts.find(host);
     assert(iter != hosts.end());
     iter->second->add_response(response);
@@ -81,21 +82,27 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
                 hosts.erase(host);
             }
         };
-        int _ev = eventfd(0, 0);
+        int _ev = eventfd(0, O_CLOEXEC);
         auto shared_host = std::make_shared<sockfd>();
         auto handler = [_ev, this, host, shared_host](int _fd, int _event)
         {
             std::cerr << "CONNECTION OPENED ON " << shared_host->getfd() << std::endl;
+            eventfd_t flag;
+            int err = eventfd_read(_fd, &flag);
+            assert(err == 0);
             if (_event & EPOLLIN)
             {
-                eventfd_t val;
-                int err = eventfd_read(_fd, &val);
-                assert(err == 0);
-                assert(shared_host->getfd() != -1);
-                hosts[host]->start_on_socket(std::move(*shared_host));
-                std::cerr << "count = " << wait_regs.count(host);
+                if (flag == 107)
+                {
+                    assert(shared_host->getfd() != -1);
+                    hosts[host]->start_on_socket(std::move(*shared_host));
+                } else if (flag == 108)
+                {
+                    hosts[host]->bad_request();
+                    response_occured(host, BAD_REQUEST);
+                }
+                hosts[host]->notify();
                 wait_regs.erase(wait_regs.find(host));
-                close(_ev);
                 _event ^= EPOLLIN;
             }
             std::cerr << "_event = " << _event << std::endl;
@@ -103,10 +110,8 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
         };
         wait_regs[host] = std::make_unique<event_registration>(efd, _ev, EPOLLIN, handler);
         hosts[host] = std::make_unique<host_data>(efd, deleter_handler, response_occured_handler);
-
-        auto &iter = hosts[host];
-        iter->add_request(req);
-        efd->add_background_task([shared_host, this, host, &iter, _ev]()
+        hosts[host]->add_request(req);
+        efd->add_background_task([shared_host, this, host, _ev]()
         {
             int port = tcp_helper::getportbyhost(host);
             std::string host_addr;
@@ -120,13 +125,9 @@ void client_data::request_occured(const std::string & host, const std::deque<cha
             } catch (...)
             {
                 std::cerr << "BAD REQUEST" << std::endl;
-                iter->bad_request();
-                efd->add_deleter([this, host]()
-                {
-                    response_occured(host, BAD_REQUEST);
-                });
+                int err = eventfd_write(_ev, 108);
+                assert(err == 0);
             }
-            iter->notify();
         });
     } else
     {
