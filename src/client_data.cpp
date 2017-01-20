@@ -126,7 +126,7 @@ void client_data::data_occured(int fd)
             request_header.parse_header(request_buffer.get_header(), http_parser::Direction::REQUEST);
             assert(request_header.get_ver() != http_parser::Version::HTTPS);
         }
-        if (request_buffer.available_body(request_header, false))
+        if (request_buffer.body_available(request_header, false))
         {
             std::string host(tcp_helper::normalize(request_header.get_host()));
             std::deque<char> req = request_buffer.extract_front_http(request_header);

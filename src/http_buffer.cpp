@@ -17,7 +17,7 @@ void http_buffer::initialize()
     }
 }
 
-bool http_buffer::available_body(const http_parser &header, bool started)
+bool http_buffer::body_available(const http_parser &header, bool started)
 {
     assert(_was_header_end);
     int code;

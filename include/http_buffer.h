@@ -29,7 +29,7 @@ public:
     size_t size();
     bool empty();
     bool write_all(int fd);
-    bool available_body(const http_parser & header, bool started);
+    bool body_available(const http_parser & header, bool started);
     std::string get_header();
     std::deque<char> extract_front_http(const http_parser &header);
 };

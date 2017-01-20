@@ -121,7 +121,7 @@ bool host_data::available_response()
         {
             response_header.parse_header(buffer_out.get_header(), http_parser::Direction::RESPONSE);
         }
-        return buffer_out.available_body(response_header, !_closed);
+        return buffer_out.body_available(response_header, !_closed);
     }
     return false;
 }

@@ -15,6 +15,8 @@
 #include <functional>
 #include <memory>
 
+#include <sys/eventfd.h>
+
 const int BUFF_SIZE = 1024;
 
 const std::string BAD_REQUEST_STR = "HTTP/1.1 400 Bad Request\r\nServer: proxy\r\nContent-Length: 91\r\nContent-Type: text/html; charset=iso-8859-1\r\nConnection: Closed\r\n\r\n<html><head><title>400 Bad Request</title></head><body><h1>Bad Request</h1></body></html>\r\n";
