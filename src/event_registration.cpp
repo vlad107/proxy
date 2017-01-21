@@ -48,7 +48,7 @@ event_registration& event_registration::operator=(event_registration &&other)
     return *this;
 }
 
-std::function<void(int, int)> event_registration::get_handler()
+const std::function<void(int, int)>& event_registration::get_handler()
 {
     return handler;
 }

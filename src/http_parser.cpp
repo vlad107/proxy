@@ -19,11 +19,12 @@ bool http_parser::empty() const
 
 std::string http_parser::get_item(std::string name) const
 {
-    if (header_items.count(name) == 0)
+    auto iter = header_items.find(name);
+    if (iter == header_items.end())
     {
         throw std::runtime_error("item " + name + " not found in http-request");
     }
-    return header_items.find(name)->second;
+    return iter->second;
 }
 
 http_parser::Version http_parser::get_ver() const

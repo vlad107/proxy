@@ -22,7 +22,7 @@ void epoll_handler::loop()
     while (!term)
     {
         int ev_sz;
-        if ((ev_sz = epoll_wait(efd, evs, MAX_EVENTS, 100)) < 0)
+        if ((ev_sz = epoll_wait(efd, evs, MAX_EVENTS, -1)) < 0)
         {
             if (EINTR == errno)
             {
@@ -38,7 +38,7 @@ void epoll_handler::loop()
                 evs[i].events |= EPOLLRDBAND;
             }
             std::cerr << "occured on " << evs[i].data.ptr << std::endl;
-            auto handler = reinterpret_cast<event_registration*>(evs[i].data.ptr)->get_handler();
+            const auto& handler = reinterpret_cast<event_registration*>(evs[i].data.ptr)->get_handler();
             int fd = reinterpret_cast<event_registration*>(evs[i].data.ptr)->get_fd();
             handler(fd, evs[i].events);
         }

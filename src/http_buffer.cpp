@@ -146,12 +146,14 @@ bool http_buffer::empty()
 
 bool http_buffer::write_all(int fd)
 {
+//    bool _was = data.size() < MAX_BUFFER_SIZE;
     while (true)
     {
         const size_t BUFF_SIZE = 1024;
         size_t len = std::min(BUFF_SIZE, data.size());
         char tmp[BUFF_SIZE];
-        for (size_t j = 0; j < len; j++) tmp[j] = data[j];
+//        for (size_t j = 0; j < len; j++) tmp[j] = data[j];
+        std::copy(data.begin(), data.begin() + len, tmp);
         int _write = ::send(fd, tmp, len, MSG_NOSIGNAL);
         if (_write > 0)
         {
@@ -159,9 +161,14 @@ bool http_buffer::write_all(int fd)
         } else if (_write < 0)
         {
             if (EINTR == errno) continue;
-            if (EPIPE == errno) return data.size();
+            if ((EPIPE == errno) || (ECONNRESET == errno)) return data.size();
             throw std::runtime_error("error in write():\n" + std::string(strerror(errno)));
         } else break;
     }
+//    if ((!_was) && (data.size() < MAX_BUFFER_SIZE))
+//    {
+
+//    }
+
     return data.empty();
 }

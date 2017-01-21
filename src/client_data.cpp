@@ -20,7 +20,7 @@ void client_data::set_disconnect(std::function<void ()> disconnect_handler)
     _was_disconnect_handler = true;
 }
 
-void client_data::return_response(std::deque<char> http_response)
+void client_data::return_response(const std::deque<char> &http_response)
 {
     if (response_buffer.empty())
     {

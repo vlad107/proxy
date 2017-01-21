@@ -25,7 +25,7 @@ public:
     event_registration(epoll_handler *efd, int fd, int mask, std::function<int(int, int)> handler);
     ~event_registration();
 
-    std::function<void(int, int)> get_handler();
+    const std::function<void(int, int)>& get_handler();
     int get_fd();
     void debug()
     {

@@ -51,8 +51,8 @@ public:
 
     void notify();
     void bad_request();
-    void add_request(std::deque<char> req);
-    void add_response(std::deque<char> resp);
+    void add_request(const std::deque<char> &req);
+    void add_response(const std::deque<char> &resp);
     void start_on_socket(sockfd host_socket);
     bool empty();
     void close();

@@ -103,7 +103,7 @@ void host_data::activate_request_handler()
     });
 }
 
-void host_data::add_request(std::deque<char> req)
+void host_data::add_request(const std::deque<char> &req)
 {
     if ((cur_state == State::STARTED) && (buffer_in.empty()))
     {
@@ -127,12 +127,12 @@ bool host_data::response_available()
 
 std::deque<char> host_data::extract_response()
 {
-    std::deque<char> result = buffer_out.extract_front_http(response_header);
+    std::deque<char> result = std::move(buffer_out.extract_front_http(response_header));
     response_header.clear();
-    return result;
+    return std::move(result);
 }
 
-void host_data::add_response(std::deque<char> resp)
+void host_data::add_response(const std::deque<char> &resp)
 {
     buffer_out.add_chunk(resp);
 }
