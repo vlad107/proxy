@@ -1,5 +1,7 @@
 #include "http_buffer.h"
 
+#include <algorithm>
+
 http_buffer::http_buffer()
 {
     initialize();
@@ -11,10 +13,8 @@ void http_buffer::initialize()
     _was_body_end = false;
     header_end_idx = -1;
     body_end_idx = -1;
-    for (size_t i = 0; i < data.size(); i++)
-    {
-        update_char(i);
-    }
+    update_body_end(0);
+    update_header_end(0);
 }
 
 bool http_buffer::body_available(const http_parser &header, bool closed)
@@ -50,19 +50,20 @@ std::deque<char> http_buffer::extract_front_http(const http_parser &header)
     {
         idx = header_end_idx + content_length + 1;
     }
+//    std::deque<char> result = data.extract_front(idx);
     std::deque<char> result(data.begin(), data.begin() + idx);
     data.erase(data.begin(), data.begin() + idx);
     initialize();
     return result;
 }
 
-void http_buffer::add_chunk(std::deque<char> s)
+void http_buffer::add_chunk(const std::deque<char> &s)
 {
+//    data.push_back(s);
+    size_t old_size = data.size();
     data.insert(data.end(), s.begin(), s.end());
-    for (size_t i = data.size() - s.size(); (i < data.size()); i++)
-    {
-        update_char(i);
-    }
+    update_body_end(old_size);
+    update_header_end(old_size);
 }
 
 bool http_buffer::header_available()
@@ -78,19 +79,43 @@ bool http_buffer::equals(size_t idx, const std::string s)
     return cur == s;
 }
 
-void http_buffer::update_char(size_t idx)
+void http_buffer::update_body_end(size_t old_size)
 {
-    if ((!_was_body_end) && (equals(idx, BODY_END)))
+    if (_was_body_end) return;
+    int beg = old_size >= BODY_END.size() ? old_size - BODY_END.size() : 0;
+    auto iter = std::search(data.begin() + beg, data.end(), BODY_END.begin(), BODY_END.end());
+    if (iter != data.end())
     {
         _was_body_end = true;
-        body_end_idx = idx;
-    }
-    if ((!_was_header_end) && (equals(idx, HEADER_END)))
-    {
-        _was_header_end = true;
-        header_end_idx = idx;
+        body_end_idx = (iter - data.begin()) + BODY_END.size() - 1;
     }
 }
+
+void http_buffer::update_header_end(size_t old_size)
+{
+    if (_was_header_end) return;
+    int beg = old_size >= HEADER_END.size() ? old_size - HEADER_END.size() : 0;
+    auto iter = std::search(data.begin() + beg, data.end(), HEADER_END.begin(), HEADER_END.end());
+    if (iter != data.end())
+    {
+        _was_header_end = true;
+        header_end_idx = (iter - data.begin()) + HEADER_END.size() - 1;
+    }
+}
+
+//void http_buffer::update_char(size_t idx)
+//{
+//    if ((!_was_body_end) && (equals(idx, BODY_END)))
+//    {
+//        _was_body_end = true;
+//        body_end_idx = idx;
+//    }
+//    if ((!_was_header_end) && (equals(idx, HEADER_END)))
+//    {
+//        _was_header_end = true;
+//        header_end_idx = idx;
+//    }
+//}
 
 std::deque<char> http_buffer::substr(size_t from, size_t to)
 {

@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "http_parser.h"
+#include "circular_deque.h"
 
 class http_buffer
 {
@@ -19,12 +20,14 @@ class http_buffer
     size_t header_end_idx;
     void initialize();
 
-    void update_char(size_t idx);
+//    void update_char(size_t idx);
+    void update_body_end(size_t old_size);
+    void update_header_end(size_t old_size);
     std::deque<char> substr(size_t from, size_t to);
     bool equals(size_t idx, const std::string s);
 public:
     http_buffer();
-    void add_chunk(std::deque<char>);
+    void add_chunk(const std::deque<char>&);
     bool header_available();
     size_t size();
     bool empty();
