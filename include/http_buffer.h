@@ -9,7 +9,6 @@
 #include <string.h>
 
 #include "http_parser.h"
-#include "circular_deque.h"
 
 class http_buffer
 {
