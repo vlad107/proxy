@@ -36,7 +36,7 @@ private:
     std::map<std::string, std::string> header_items;
 
     Version extract_version(std::string);
-    std::string get_item(std::string name) const;
+    int get_item(std::string name, std::string *) const;
 };
 
 #endif // HTTP_PARSER_H

@@ -17,14 +17,15 @@ bool http_parser::empty() const
     return _empty;
 }
 
-std::string http_parser::get_item(std::string name) const
+int http_parser::get_item(std::string name, std::string *res) const
 {
     auto iter = header_items.find(name);
     if (iter == header_items.end())
     {
-        throw std::runtime_error("item " + name + " not found in http-request");
+        return -1;
     }
-    return iter->second;
+    *res = iter->second;
+    return 0;
 }
 
 http_parser::Version http_parser::get_ver() const
@@ -107,43 +108,36 @@ size_t http_parser::get_content_length(int &code) const
     {
         return 0; // TODO: not always, but very often
     }
+    std::string conn;
+    int err = get_item("Connection", &conn);
+    if ((err == 0) && (conn.find("close") != std::string::npos))
+    {
+        code = UNTIL_DISCONNECT;
+        return 0;
+    }
+    std::string enc;
+    err = get_item("Transfer-Encoding", &enc);
+    if (err == 0) {
+        assert(enc.find("identity") == std::string::npos);
+        code = CHUNKED;
+        return 0;
+    }
+    std::string len;
+    err = get_item("Content-Length", &len);
     try
     {
-        std::string connection = get_item("Connection");
-        if (connection.find("close") != std::string::npos)
-        {
-            code = UNTIL_DISCONNECT;
-            return 0;
-        }
-        throw std::runtime_error("connection != close");
+        return std::stoi(len);
     } catch (...)
     {
-        try
-        {
-            std::string encoding = get_item("Transfer-Encoding");
-            if (encoding.find("identity") == std::string::npos)
-            {
-                code = CHUNKED;
-                return 0;
-            }
-            assert(false); // TODO: have not seen what to do in this case in RFC
-        } catch (...)
-        {
-            try
-            {
-                std::string length = get_item("Content-Length");
-                return std::stoi(length);
-            } catch (...)
-            {
-                return 0;
-            }
-        }
+        return 0;
     }
-    assert(false);
 }
 
 
 std::string http_parser::get_host() const
 {
-    return get_item("Host");
+    std::string res;
+    int err = get_item("Host", &res);
+    assert(err == 0);
+    return res;
 }
